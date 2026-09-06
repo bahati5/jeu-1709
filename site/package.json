@@ -1,0 +1,18 @@
+{
+  "name": "dossier-1709",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "verif": "node scripts/verif-fuites.mjs",
+    "supabase": "node scripts/verif-supabase.mjs"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.115.0",
+    "next": "^16.3.3",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
+  }
+}

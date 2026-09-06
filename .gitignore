@@ -1,0 +1,44 @@
+# ---------------------------------------------------------------
+#  jeu-1709
+# ---------------------------------------------------------------
+
+# --- Les secrets. Rien de tout ça ne monte, jamais. ---
+.env
+.env.*
+!.env.example
+# la clé secrète Supabase vit ici et contourne RLS
+
+# --- Les spoilers ---
+# La bible narrative contient toutes les réponses, le twist et la phrase
+# de passe. Il est développeur : elle ne monte pas sur GitHub.
+# (Sauvegardée par ailleurs dans le projet Claude.)
+prive/
+
+# --- Ce qu'on a mis de côté à la refonte ---
+# Supprime le dossier quand tu es sûre de ne rien vouloir récupérer.
+_corbeille/
+
+# --- État local ---
+# L'avancement de la partie quand Supabase n'est pas branché.
+.data/
+
+# --- Build et dépendances ---
+node_modules/
+.next/
+out/
+build/
+.vercel/
+*.tsbuildinfo
+next-env.d.ts
+
+# --- Journaux ---
+npm-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# --- Système ---
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
