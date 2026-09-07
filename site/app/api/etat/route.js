@@ -44,12 +44,15 @@ export async function GET() {
     if (d && d.actif !== false) {
       manche = versClient(d, { resolu });
 
-      /* Les indices ouverts, et eux seuls. */
+      /* Les indices ouverts, et eux seuls.
+         On compte avec l'heure du SERVEUR (e.t), pas Date.now() : sous
+         SIM_DATE les deux divergent, et les indices ne s'ouvriraient
+         jamais en répétition. */
       const debut = etat.debuts?.[slug] ? Date.parse(etat.debuts[slug]) : null;
-      const n = indicesDepuis(cfg, debut);
+      const n = indicesDepuis(cfg, debut, e.t);
       manche.indices = (d.indices || []).slice(0, n);
       manche.indicesTotal = (d.indices || []).length;
-      manche.minutes = minutesDepuis(debut);
+      manche.minutes = minutesDepuis(debut, e.t);
       manche.prochainIndice = (cfg.paliers || [])[n] ?? null;
 
       /* Une serrure ouverte révèle son texte — après coup seulement. */

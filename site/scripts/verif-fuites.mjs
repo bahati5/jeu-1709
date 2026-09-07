@@ -16,10 +16,20 @@ const { listerDossiers, lireConfig } = await import('../lib/donnees.js');
 
 /* ---- 1. Ce qui ne doit jamais sortir ---- */
 const secrets = new Map();          // chaîne -> d'où elle vient
+
+/* Une chaîne trop courte, ou faite de chiffres seuls, se retrouve par
+   hasard dans n'importe quel hash de build : la chercher ne produit que
+   du bruit et finit par faire ignorer les vraies alertes. */
+const cherchable = (t) => {
+  if (t.length < 6) return false;
+  if (/^\d+$/.test(t) && t.length < 8) return false;
+  return true;
+};
+
 const ajouter = (v, source) => {
   if (typeof v === 'string') {
     const t = v.trim();
-    if (t.length >= 4) secrets.set(t, source);
+    if (cherchable(t)) secrets.set(t, source);
   } else if (Array.isArray(v)) v.forEach((x) => ajouter(x, source));
   else if (v && typeof v === 'object') Object.values(v).forEach((x) => ajouter(x, source));
 };
@@ -48,24 +58,32 @@ if (!secrets.size) {
   process.exit(0);
 }
 
-/* ---- 2. Tout ce que le navigateur peut voir ---- */
-const racine = path.join(process.cwd(), '.next');
-async function fichiersClient(dir, acc = []) {
+/* ---- 2. Tout ce que le navigateur peut voir, et rien d'autre ----
+ *
+ * Deux endroits seulement atteignent le navigateur :
+ *   .next/static/    les bundles, le CSS, les médias
+ *   .next/server/app/*.html et *.rsc   les pages pré-rendues
+ *
+ * Le reste de .next/ (manifestes, traces .nft.json, cache) reste sur le
+ * serveur. Les fouiller ne fait que produire de fausses alertes — et une
+ * alerte à laquelle on cesse de croire ne protège plus rien.
+ */
+async function collecter(dir, filtre, acc = []) {
   let entrees;
   try { entrees = await readdir(dir, { withFileTypes: true }); } catch { return acc; }
   for (const e of entrees) {
     const p = path.join(dir, e.name);
-    if (e.isDirectory()) {
-      if (e.name === 'cache' || e.name === 'server') continue;   // jamais servi
-      await fichiersClient(p, acc);
-    } else if (/\.(js|mjs|css|json|html|txt|map)$/.test(e.name)) {
-      acc.push(p);
-    }
+    if (e.isDirectory()) await collecter(p, filtre, acc);
+    else if (filtre(e.name)) acc.push(p);
   }
   return acc;
 }
 
-const fichiers = await fichiersClient(racine);
+const racine = path.join(process.cwd(), '.next');
+const fichiers = [
+  ...await collecter(path.join(racine, 'static'), (n) => /\.(js|mjs|css|json|txt|map|html)$/.test(n)),
+  ...await collecter(path.join(racine, 'server', 'app'), (n) => /\.(html|rsc)$/.test(n)),
+];
 if (!fichiers.length) {
   console.error('Pas de build trouvé. Lance `npm run build` d\'abord.');
   process.exit(1);
