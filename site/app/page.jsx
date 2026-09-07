@@ -6,10 +6,18 @@
  * jamais verrouillé : un onglet grisé annonce qu'il y a quelque chose
  * derrière, et le mystère meurt là.
  */
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Manche } from './manches';
 import { Lecteur } from './scenes';
 import { sequencePour } from '@/lib/animations';
+
+/* L'ordre de lecture des onglets, et leur nom. Le serveur décide
+   lesquels sont ouverts ; il ne décide pas dans quel sens on les lit. */
+const ORDRE = ['manche', 'enveloppe', 'invitation', 'tableau', 'fonds'];
+const LIBELLES = {
+  manche: 'La manche', enveloppe: "L'enveloppe", invitation: "L'invitation",
+  tableau: 'Le tableau', fonds: 'Le fonds',
+};
 
 const api = async (url, corps, methode = 'POST') => {
   const r = await fetch(url, {
@@ -22,7 +30,7 @@ const api = async (url, corps, methode = 'POST') => {
 
 export default function Jeu() {
   const [d, setD] = useState(null);
-  const [onglet, setOnglet] = useState('manche');
+  const [onglet, setOnglet] = useState(null);
   const [scenes, setScenes] = useState(null);
   const [ctx, setCtx] = useState({});
 
@@ -89,12 +97,21 @@ export default function Jeu() {
     else jouer('reponse-fausse');
   };
 
+  const code = async (saisie) => {
+    const r = await api('/api/verify', { quoi: 'code', saisie });
+    if (r.ok) jouer('code-juste', { texte: saisie });
+    else jouer('reponse-fausse');
+  };
+
   const anomalie = async (saisie) => {
     const r = await api('/api/verify', { slug: d.manche.slug, quoi: 'anomalie', saisie });
     if (r.ok) jouer('anomalie', { texte: r.texte });
   };
 
-  const onglets = (d.onglets || []).filter((o) => o !== 'fonds' || true);
+  /* Le serveur dit lesquels sont ouverts ; l'ordre de lecture est ici.
+     La manche du jour d'abord : c'est ce pour quoi il est venu. */
+  const onglets = ORDRE.filter((o) => (d.onglets || []).includes(o));
+  const actif = onglets.includes(onglet) ? onglet : onglets[0];
 
   return (
     <main className="wrap">
@@ -102,20 +119,23 @@ export default function Jeu() {
 
       <nav className="onglets">
         {onglets.map((o) => (
-          <button key={o} className={onglet === o ? 'on' : ''} onClick={() => setOnglet(o)}>
-            {({ manche: 'La manche', tableau: 'Le tableau', fonds: 'Le fonds', enveloppe: "L'enveloppe", invitation: "L'invitation" })[o] || o}
+          <button key={o} className={actif === o ? 'on' : ''} aria-current={actif === o}
+            onClick={() => setOnglet(o)}>
+            {LIBELLES[o] || o}
           </button>
         ))}
       </nav>
 
-      {onglet === 'manche' && (
+      {actif === 'manche' && (
         d.manche
           ? <Manche m={d.manche} onRepondre={repondre} onPasse={passe} onAnomalie={anomalie} />
           : <p className="veille">Le greffe ne verse rien aujourd'hui.</p>
       )}
 
-      {onglet === 'tableau' && <Tableau d={d} />}
-      {onglet === 'fonds' && <Fonds d={d} />}
+      {actif === 'tableau' && <Tableau d={d} />}
+      {actif === 'fonds' && <Fonds d={d} />}
+      {actif === 'enveloppe' && <Enveloppe d={d} onCode={code} />}
+      {actif === 'invitation' && <Invitation />}
 
       {scenes && (
         <Lecteur sequence={scenes} contexte={ctx} reglages={d.animations} onFini={finScenes} />
@@ -168,14 +188,54 @@ function Tableau({ d }) {
 
 function Fonds({ d }) {
   const total = d.tailleFonds || 47;
+  const pris = d.scelles?.pris || 0;
   return (
     <section className="fonds">
-      <p className="veille">{total} dossiers. Vous en avez ouvert {d.scelles?.pris || 0}.</p>
+      <p className="fonds-t">{total} dossiers. Vous en avez ouvert <b>{pris}</b>.</p>
       <div className="fonds-grille">
         {Array.from({ length: total }, (_, i) => (
-          <span key={i} className="fonds-case">{String(i + 1).padStart(2, '0')}</span>
+          <span key={i} className={`fonds-case ${i < pris ? 'pris' : ''}`}>
+            {String(i + 1).padStart(2, '0')}
+          </span>
         ))}
       </div>
+    </section>
+  );
+}
+
+/* Le dernier jour, une fois la manche close : l'acte à signer.
+   Le code lui-même vit dans la config, et n'a jamais transité par ici. */
+function Enveloppe({ d, onCode }) {
+  const [v, setV] = useState('');
+  if (d.codeOk) {
+    return (
+      <section className="ma enveloppe">
+        <p className="ma-resolu">Acte enregistré.</p>
+        <p className="ma-consigne">Le fonds est clos. Ce qui est établi reste au tableau.</p>
+      </section>
+    );
+  }
+  return (
+    <section className="ma enveloppe">
+      <header className="ma-tete">
+        <small>Parquet — mairie centrale</small>
+        <h2>L'acte de clôture</h2>
+      </header>
+      <p className="ma-consigne">Portez ici le code que le fonds vous a laissé.</p>
+      <form className="ma-champ" onSubmit={(e) => { e.preventDefault(); if (v.trim()) onCode(v); }}>
+        <input value={v} onChange={(e) => setV(e.target.value)}
+          placeholder="…" autoComplete="off" aria-label="Le code de clôture" />
+        <button disabled={!v.trim()}>Signer</button>
+      </form>
+    </section>
+  );
+}
+
+function Invitation() {
+  return (
+    <section className="board">
+      <h2 className="board-titre">Ce qui vous attend</h2>
+      <p className="veille">Le carton n'est pas encore gravé.</p>
     </section>
   );
 }
