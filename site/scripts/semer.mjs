@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-/* Peuple la base : la configuration et les huit jours.
+/* Verse LE CARTON 47 dans la base : la configuration et les huit jours.
  *
- *   node scripts/semer.mjs
+ *   npm run semer
  *
  * Ce script n'est PAS le jeu. C'est un chargement unique, pour t'éviter
  * de taper trente mille signes dans des formulaires. Une fois versé, tout
@@ -9,11 +9,7 @@
  * l'application.
  *
  * Relançable : il écrase les huit dossiers listés ici, et rien d'autre.
- *
- * ÉTAT : le dossier 1 est fini. Les dossiers 2 à 8 sont des brouillons
- * JOUABLES — vraies mécaniques, vraies solutions, textes à durcir. Leur
- * titre porte « (brouillon) » pour que tu voies d'un coup d'œil ce qui
- * reste à écrire. Enlève la mention quand tu es contente du texte.
+ * Les huit récompenses sont volontairement vides : elles sont à toi.
  */
 import { readFile } from 'node:fs/promises';
 
@@ -28,9 +24,9 @@ try {
 const { enregistrerDossier, ecrireConfig, pilote } = await import('../lib/donnees.js');
 
 /* ================================================================== */
-/*  JOUR 1 — Le camion des ordures                                     */
+/*  JOUR 1 · 10 septembre — Le parapluie de la voiture 3               */
 /*  Sept témoins, deux menteurs. Solution unique vérifiée sur les 147  */
-/*  combinaisons : vendredi, menteurs n° 4 et 5.                       */
+/*  combinaisons : vendredi, menteurs n° 4 (gardien) et 5 (Mvé).       */
 /* ================================================================== */
 
 const reponsesJ1 = [];
@@ -39,9 +35,6 @@ for (const j of ['vendredi', 'le vendredi']) {
     reponsesJ1.push(`${j} ${a} ${b}`, `${j} ${a} et ${b}`, `${a} ${b} ${j}`);
   }
 }
-/* Il peut nommer les menteurs au lieu de les numéroter — avec ou sans
-   « et » entre les deux, dans un sens ou dans l'autre. Refuser une bonne
-   réponse pour une conjonction coûte une soirée ; l'accepter ne coûte rien. */
 for (const g of ['gardien', 'le gardien']) {
   for (const m of ['mve', 'soeur mve', 'sœur mvé', 'mvé', 'la soeur']) {
     for (const lien of [' ', ' et ']) {
@@ -52,13 +45,26 @@ for (const g of ['gardien', 'le gardien']) {
 
 const J1 = {
   slug: 'camion-ordures',
-  titre: 'Le camion des ordures',
+  titre: 'Le parapluie de la voiture 3',
   genre: 'Logique — sept témoins, deux menteurs',
   type: 'saisie', ordre: 0, chrono_ref: 35,
   payload: {
-    enonce: `Note de marge, encre bleue :
+    enonce: `23h47 — numéro inconnu
 
-« Je commence par celui-là. Trente-cinq minutes pour moi, et je connaissais le tour. Vous en mettrez plus. Tout le monde en met plus, parce que tout le monde commence par croire celui qui donne un chiffre. »
+« Bonsoir. Vous ne me connaissez pas.
+
+Je m'appelle Adèle Mbeng, archiviste à la mairie centrale. Depuis six mois je numérise les registres de naissance de 1999. Il y a un acte, dans le carton 47, qui n'aurait jamais dû être écrit.
+
+Je ne peux en parler à personne ici, et je ne peux pas vous envoyer le document : les sorties de fichiers sont journalisées, je serais repérée en une heure. Je vais devoir vous le faire passer en morceaux, cachés dans des choses sans intérêt.
+
+Avant, je dois savoir si vous en êtes capable. Il y a un vieux dossier de 1994 dans le même carton. Sept voisins, deux menteurs. Personne ne l'a jamais résolu.
+
+Faites-le et je continue.
+
+P.-S. — Trois choses, et ne me demandez pas pourquoi.
+Le carton 47 ne se consulte qu'entre le coucher et le lever du soleil.
+Ce qui en sort la nuit doit y être rentré avant l'aube.
+On n'écrit jamais dans le registre. On recopie à côté. »
 
 — — —
 
@@ -94,13 +100,13 @@ Un locataire du troisième a quitté l'immeuble un jour de la semaine dernière,
 7 · AWA — fiche F-1047
 « Ce n'était ni un mardi ni un mercredi. »`,
     consigne: 'Quel jour, et qui sont les deux menteurs ?',
-    placeholder: 'le jour, puis les deux numéros — ex. « lundi 2 6 »',
+    placeholder: 'le jour, puis les deux numéros',
   },
   solution: { reponses: reponsesJ1, resultat: 'VENDREDI' },
   indices: [
     "Sept jours, vingt et une paires de menteurs possibles : cent quarante-sept combinaisons. C'est peu. Rien n'interdit de les parcourir une à une.",
-    "La cinquième déposition ne parle pas du jour. Elle parle des autres dépositions. Traite-la à part : elle peut être fausse sans qu'aucune de celles qu'elle vise le soit.",
-    "Suppose un instant que le gardien dise vrai, et compte combien de personnes deviennent menteuses. Tu verras que c'est beaucoup trop.",
+    "La cinquième déposition ne parle pas du jour. Elle parle des autres dépositions. Traitez-la à part : elle peut être fausse sans qu'aucune de celles qu'elle vise le soit.",
+    "Supposez un instant que le gardien dise vrai, et comptez combien de personnes deviennent menteuses. Vous verrez que c'est beaucoup trop.",
   ],
   anomalie: {
     ou: 'Les numéros de fiche des sept témoins.',
@@ -112,23 +118,33 @@ Un locataire du troisième a quitté l'immeuble un jour de la semaine dernière,
 };
 
 /* ================================================================== */
-/*  JOUR 2 — Le masque                                                 */
-/*  Interpolation sur le registre du faussaire. L'atelier ouvre en     */
-/*  1994 au n° 60, et progresse de 120 numéros par an. Le masque porte */
-/*  le n° 726 : (726-60)/120 = 5,55 ans après mars 1994 → fin 1999.    */
-/*  Le certificat annonce 1974 : c'est le piège, et il est daté d'un   */
-/*  atelier qui n'existait pas encore.                                 */
+/*  JOUR 2 · 11 septembre — Le masque au certificat                    */
+/*  60 → mars 1994, 120 numéros/an. (726-60)/120 = 5,55 ans → 1999.    */
 /* ================================================================== */
 
 const J2 = {
   slug: 'le-masque',
-  titre: 'Le masque (brouillon)',
+  titre: 'Le masque au certificat',
   genre: 'Expertise — interpolation',
   type: 'saisie', ordre: 1, chrono_ref: 55,
   payload: {
-    enonce: `Note de marge :
+    enonce: `Adèle, 08h15 — « Apprenez à ne pas croire un papier tamponné. Vous en verrez d'autres. »
 
-« Un faussaire ne se trahit jamais sur son objet. Il y a mis vingt ans de métier. Il se trahit sur sa comptabilité, où il n'en a mis aucun. »
+04h12 — un second numéro, minuscules, sans ponctuation :
+
+    n'ouvrez pas ce qu'elle vous envoie
+
+Vous montrez le message à Adèle. Elle met vingt minutes à répondre, ce qui ne lui ressemble pas.
+
+    « Il s'appelle Okoumé. Il était greffier ici. On l'a radié en 2019.
+      Ne lui répondez pas. Et surtout ne lui dites pas où vous en êtes. »
+
+09h30 — un troisième message. Ruth, 23 ans, stagiaire à la numérisation :
+
+    « bonjour !! excusez moi de vous deranger comme ça 😅 jai vu votre nom
+      dans le journal des consultations du fonds 47 et personne ne consulte
+      jamais ce fonds. si vous cherchez quelque chose jai acces au scanner
+      moi. dites moi je peux aider »
 
 — — —
 
@@ -153,9 +169,9 @@ En quelle année a-t-il réellement été fabriqué ?`,
   },
   solution: { reponses: ['1999'], resultat: '1999' },
   indices: [
-    "Les trois entrées datées suffisent à établir un rythme. Combien de numéros par an ?",
-    "Cent vingt numéros par an, à partir du n° 60 en mars 1994. Où tombe le 726 ?",
-    "(726 − 60) ÷ 120 = 5,55 ans après mars 1994.",
+    'Les trois entrées datées suffisent à établir un rythme. Combien de numéros par an ?',
+    'Cent vingt numéros par an, à partir du n° 60 en mars 1994. Où tombe le 726 ?',
+    '(726 − 60) ÷ 120 = 5,55 ans après mars 1994.',
   ],
   anomalie: {
     ou: 'La date du certificat, comparée à celle de la déclaration en préfecture.',
@@ -167,18 +183,37 @@ En quelle année a-t-il réellement été fabriqué ?`,
 };
 
 /* ================================================================== */
-/*  JOUR 3 — Le parchemin                                              */
-/*  Serrure Potter, puis Vigenère de clé MARAUDEUR. Le texte clair ne  */
-/*  nomme jamais le mois : il le décrit.                               */
+/*  JOUR 3 · 12 septembre — Le carnet fermé                            */
+/*  Serrure, puis Vigenère de clé MARAUDEUR. Le mois n'est jamais      */
+/*  écrit : il est décrit.                                             */
 /* ================================================================== */
 
 const J3 = {
   slug: 'le-parchemin',
-  titre: 'Le parchemin',
+  titre: 'Le carnet fermé',
   genre: 'Cryptanalyse',
   type: 'serrure', ordre: 2, chrono_ref: 75,
   payload: {
-    invite: `DOSSIER 3 · pièce unique
+    invite: `Adèle n'a pas écrit de la journée.
+
+C'est Okoumé qui envoie la pièce à sa place. Et elle est mieux préparée que les siennes.
+
+    un carnet qui ne s'ouvre pas est un carnet qui attend
+    qu'on le lui demande correctement
+
+    je suppose que vous savez comment on demande poliment à un parchemin
+
+    elle vous ment sur un point. un seul. je ne vous dirai pas lequel,
+    vous ne me croiriez pas et vous auriez raison
+
+Le soir, Ruth :
+
+    « jai retrouvé le cliché de 1999 dans le carton !! il y a 6 personnes
+      dessus mais le registre de garde en liste 5 😭 »
+
+— — —
+
+DOSSIER 3 · pièce unique
 
 Une page vierge, dans une chemise vide.
 Au dos, à la plume :
@@ -198,23 +233,22 @@ LYV IHWMNKS LHTLVZNVNN OI WYQMZN XH P YTALV`,
   },
   indices: [
     "L'analyse de fréquences ne donnera rien : la lettre la plus fréquente plafonne à 9,7 %, là où un E français en pèse 15. Ce n'est pas une substitution simple.",
-    "Cherche les groupes de lettres qui se répètent et mesure les distances entre eux. Kasiski, 1863. La clé a neuf lettres.",
-    "La clé est le mot que tu as lu aujourd'hui sans y prêter attention : MARAUDEUR.",
+    'Cherchez les groupes de lettres qui se répètent et mesurez les distances entre eux. Kasiski, 1863. La clé a neuf lettres.',
+    "La clé est le mot que vous avez lu aujourd'hui sans y prêter attention : MARAUDEUR.",
   ],
   anomalie: {
     ou: "Sous le texte déchiffré, une ligne d'une autre encre.",
-    texte: "« Si tu lis ceci, c'est que tu as ma clé. Alors tu sais déjà que je n'ai jamais résolu ces affaires. » L'Archiviste n'écrit pas au lecteur. Il écrit à quelqu'un d'autre.",
-    reponses: ["une autre encre", "la derniere ligne", "il ecrit a quelqu'un", "il n'a jamais resolu les affaires", "autre ecriture"],
+    texte: "« Si tu lis ceci, c'est que tu as ma clé. Alors tu sais déjà que je n'ai jamais résolu ces affaires. » Il n'écrit pas au lecteur. Il écrit à quelqu'un d'autre.",
+    reponses: ['une autre encre', 'la derniere ligne', "il ecrit a quelqu'un", 'autre ecriture', "il n'a jamais resolu"],
   },
   animations: { mode: 'toutes', sequence: ['parchemin', 'tampon_ok', 'sceau', 'chrono', 'recompense'] },
 };
 
 /* ================================================================== */
-/*  JOUR 4 — Les jours creux                                           */
-/*  Le creux VISIBLE (5 au 8) est un vrai pont, documenté : c'est le   */
-/*  leurre. La vraie période maquillée est le 12 au 19, dont la        */
-/*  moyenne est parfaitement normale (96) mais l'écart-type            */
-/*  impossible (0,5 contre 38,9 ailleurs).                             */
+/*  JOUR 4 · 13 septembre — Le wagon qui n'a pas roulé                 */
+/*  Le creux VISIBLE (5-8) est un vrai congé déclaré : c'est le leurre.*/
+/*  La vraie période maquillée est le 12-19 : moyenne normale (96),    */
+/*  écart-type impossible (0,5 contre 38,9 ailleurs).                  */
 /* ================================================================== */
 
 const RELEVES = [
@@ -227,13 +261,17 @@ const RELEVES = [
 
 const J4 = {
   slug: 'jours-creux',
-  titre: 'Les jours creux (brouillon)',
+  titre: "Le wagon qui n'a pas roulé",
   genre: 'Analyse de données',
   type: 'saisie', ordre: 3, chrono_ref: 55,
   payload: {
-    enonce: `Note de marge :
+    enonce: `Vous remontez le fil de la veille. Il y a un horodatage sans message : Adèle a écrit le 12 à 09h04. Le message a été supprimé du canal avant que vous l'ouvriez.
 
-« Le pont est un cadeau que je vous fais. Prenez-le, perdez vingt minutes dessus, revenez. »
+Ce n'est pas une surveillance extérieure. Quelqu'un a la main sur le canal lui-même.
+
+Balep, le vigile de nuit, vous propose un marché : il peut photographier le carton pendant sa ronde, contre un service.
+
+    « moi je vois tout la nuit chef. mais faut voir hein. »
 
 — — —
 
@@ -247,8 +285,8 @@ ${RELEVES.map(([j, v]) => `    ${String(j).padStart(2, ' ')} → ${v}`).join('\n
 Une note au dossier signale une fermeture administrative du 5 au 8 :
 congé collectif, déclaré, régulier.
 
-Trouve les jours où le bâtiment ne fonctionnait pas — et qu'on a voulu cacher.`,
-    consigne: 'La période, en deux nombres. Ex. « du 3 au 6 ».',
+Trouvez les jours où le bâtiment ne fonctionnait pas — et qu'on a voulu cacher.`,
+    consigne: 'La période, en deux nombres.',
     placeholder: 'du .. au ..',
   },
   solution: {
@@ -257,11 +295,11 @@ Trouve les jours où le bâtiment ne fonctionnait pas — et qu'on a voulu cache
   },
   indices: [
     "Un index ne dit rien. Ce sont les écarts d'un jour à l'autre qu'il faut regarder.",
-    "Le creux du 5 au 8 est réel et déclaré : ce n'est pas lui. Cherche une période dont la moyenne est parfaitement normale.",
-    "Calcule l'écart-type des écarts journaliers, par tranches. Ailleurs il vaut environ 39. Sur huit jours consécutifs, il tombe à 0,5. Un compteur réel ne respire jamais aussi régulièrement.",
+    "Le creux du 5 au 8 est réel et déclaré : ce n'est pas lui. Cherchez une période dont la moyenne est parfaitement normale.",
+    "Calculez l'écart-type des écarts journaliers, par tranches. Ailleurs il vaut environ 39. Sur huit jours consécutifs, il tombe à 0,5. Un compteur réel ne respire jamais aussi régulièrement.",
   ],
   anomalie: {
-    ou: "Les écarts de la période maquillée, un par un.",
+    ou: 'Les écarts de la période maquillée, un par un.',
     texte: "Les écarts fabriqués alternent 96, 97, 96, 97 — la signature d'un générateur, pas d'un bâtiment. Celui qui a maquillé ces relevés savait quelle moyenne imiter, mais pas qu'il fallait aussi imiter le désordre.",
     reponses: ['96 97', 'ils alternent', "l'alternance", 'trop regulier', 'un generateur', '96 et 97'],
   },
@@ -270,29 +308,37 @@ Trouve les jours où le bâtiment ne fonctionnait pas — et qu'on a voulu cache
 };
 
 /* ================================================================== */
-/*  JOUR 5 — L'imposteur                                               */
-/*  Celui qui se contredit est innocent : un vrai souvenir est         */
-/*  imparfait. L'imposteur est celui dont les déclarations n'apportent */
-/*  AUCUNE information que les quatre autres ne donnent déjà.          */
-/*  Et la note de l'Archiviste, ce jour-là, désigne le mauvais.        */
+/*  JOUR 5 · 14 septembre — Cinq voyageurs                             */
+/*  Celui qui se contredit (Nze) est innocent. L'imposteur (Oyono)     */
+/*  n'apporte AUCUNE information non déductible des quatre autres.     */
 /* ================================================================== */
 
 const J5 = {
   slug: 'imposteur',
-  titre: "L'imposteur (brouillon)",
+  titre: 'Cinq voyageurs',
   genre: 'Déduction sociale',
   type: 'imposteur', ordre: 4, chrono_ref: 50,
   payload: {
-    enonce: `Note de marge :
+    enonce: `Adèle, 07h02. Froide.
 
-« Celui-là est facile. Le troisième se contredit deux fois en cinq lignes — je l'ai donné au parquet en dix minutes. Ne perdez pas votre soirée là-dessus. »
+    « Pourquoi lui avez-vous parlé du carton 47 ?
+      Je ne l'avais dit qu'à vous. »
+
+Vous n'avez rien dit. Vous n'avez jamais répondu à Okoumé.
+
+Vous comparez. Et vous comprenez : depuis trois jours, Okoumé écrit à Adèle en se faisant passer pour vous. Deux conversations existent. Une seule est vraie.
+
+Vous n'avez pas seulement été surveillé. Vous avez été employé.
+
+Et Ruth ne répond plus. Son dernier message date de 23h14, hier :
+
+    « attends je crois quil y a quelquun »
 
 — — —
 
 DOSSIER 5 · cinq dépositions
 
-Cinq personnes déclarent avoir participé à la même mission de relevé, une nuit de septembre.
-Quatre y étaient. La cinquième a appris son rôle.`,
+Cinq personnes déclarent avoir participé à la même mission de relevé, une nuit de septembre. Quatre y étaient. La cinquième a appris son rôle.`,
     declarations: [
       "MENGUE — « On est partis à quatre heures dix. Il pleuvait sur la route du bas. J'ai porté la caisse verte, celle dont la poignée était cassée. Le gardien nous a ouvert sans rien demander. Je crois qu'il s'appelait Ondo, ou Ondja. »",
       "BEKALE — « Quatre heures et quelques. La route du bas était impraticable, on a pris l'autre. J'avais oublié mes gants, Mengue m'a prêté les siens. Le portail était déjà ouvert quand on est arrivés. »",
@@ -309,32 +355,62 @@ Quatre y étaient. La cinquième a appris son rôle.`,
   },
   indices: [
     "Un vrai souvenir est imparfait. Celui qui se contredit se souvient mal — ce n'est pas la même chose que mentir.",
-    "Compare ce que chaque déposition APPORTE. Quatre d'entre elles contiennent au moins un détail que personne d'autre ne donne.",
+    'Comparez ce que chaque déposition APPORTE. Quatre d\'entre elles contiennent au moins un détail que personne d\'autre ne donne.',
     "Une seule déposition ne contient rien qui ne soit déjà dans les autres. Elle n'a pas été vécue, elle a été lue.",
   ],
   anomalie: {
-    ou: "La note de l'Archiviste, comparée à ta conclusion.",
-    texte: "L'Archiviste désigne Nze avec assurance, et il se trompe. Ce n'est pas une erreur : Nze est la seule des cinq qui aurait pu le contredire.",
-    reponses: ["l'archiviste se trompe", 'il se trompe', 'la note est fausse', 'nze', "l'archiviste ment", 'il ment'],
+    ou: "Le message d'Adèle de ce jour-là, comparé à votre conclusion.",
+    texte: "Adèle désigne Nze avec assurance, et elle se trompe. Ce n'est pas une erreur : Nze est la seule des cinq qui aurait pu la contredire.",
+    reponses: ['elle se trompe', 'adele se trompe', 'le message est faux', 'nze', 'elle ment', 'adele ment'],
   },
   recompense: { nom: '', precision: '', gag: true },
   animations: { mode: 'toutes', sequence: ['tampon_ok', 'sceau', 'chrono', 'recompense'] },
 };
 
 /* ================================================================== */
-/*  JOUR 6 — Le scellé                                                 */
+/*  JOUR 6 · 15 septembre — Le scellé forcé                            */
 /*  hex → ROT13 → « ARRETE 561 DU 10 SEPTEMBRE ».                      */
-/*  Le champ Artist est un leurre : c'est le nom que l'Archiviste a    */
-/*  accusé la veille.                                                  */
+/*  Le champ Artist est un leurre : le nom accusé la veille.           */
 /* ================================================================== */
 
 const J6 = {
   slug: 'le-scelle',
-  titre: 'Le scellé (brouillon)',
+  titre: 'Le scellé forcé',
   genre: 'Forensique',
   type: 'saisie', ordre: 5, chrono_ref: 70,
   payload: {
-    enonce: `DOSSIER 6 · scellé numérique
+    enonce: `Vous ne demandez plus la permission. Vous forcez le scellé et vous remontez au dossier personnel d'Okoumé.
+
+    CONSEIL DE DISCIPLINE — 2019
+    M. Okoumé, greffier, radié pour refus caractérisé
+    d'exécuter l'ordre de destruction du carton 47.
+
+Vous relisez trois fois. Il n'a jamais voulu détruire le dossier. Il a été radié pour avoir refusé de le faire.
+
+Puis Mme Ondo, direction des archives, en-tête officiel, deux lignes :
+
+    « Mlle Ruth Ekomi a été mise à pied à titre conservatoire le 14 septembre,
+      à la suite d'un accès non autorisé au fonds 47. Nous vous saurions gré
+      de cesser toute sollicitation. »
+
+C'est vous qui lui aviez demandé de scanner le cliché.
+
+Balep, le même soir : « la dame m'a demandé qui venait la nuit. j'ai dit. désolé chef. »
+
+Okoumé, 03h50 :
+
+    vous êtes allé trop loin maintenant
+    si vous vous arrêtez là ils reprendront le dossier et le brûleront
+    et elle sera tranquille
+    si vous continuez vous la trouverez
+    je ne vous aiderai plus mais je ne vous empêcherai plus
+    choisissez vite il reste deux jours
+
+Elle.
+
+— — —
+
+DOSSIER 6 · scellé numérique
 
 Une photographie versée au dossier. On n'en a gardé que les métadonnées :
 
@@ -353,13 +429,13 @@ Sur la chemise, une phrase :
     resultat: '561',
   },
   indices: [
-    "Le champ Artist est un nom. Un nom n'est pas une clé — et celui-là, tu l'as déjà vu hier.",
-    "ImageDescription est de l'hexadécimal. Convertis-le en texte : tu obtiendras quelque chose de lisible mais faux.",
-    "Ce que tu obtiens est décalé de treize lettres. ROT13.",
+    "Le champ Artist est un nom. Un nom n'est pas une clé — et celui-là, vous l'avez déjà vu hier.",
+    'ImageDescription est de l\'hexadécimal. Convertissez-le en texte : vous obtiendrez quelque chose de lisible mais faux.',
+    'Ce que vous obtenez est décalé de treize lettres. ROT13.',
   ],
   anomalie: {
     ou: 'Le champ Artist.',
-    texte: "Le leurre porte le nom que l'Archiviste accusait la veille. Il n'a pas seulement désigné le mauvais coupable : il a préparé la pièce qui devait le confirmer.",
+    texte: "Le leurre porte le nom qu'Adèle accusait la veille. Elle n'a pas seulement désigné le mauvais coupable : elle avait préparé la pièce qui devait le confirmer.",
     reponses: ['artist', 'le champ artist', 'c nze', 'nze', 'le leurre', "c'est un leurre"],
   },
   recompense: { nom: '', precision: '', gag: false },
@@ -367,17 +443,22 @@ Sur la chemise, une phrase :
 };
 
 /* ================================================================== */
-/*  JOUR 7 — Quatre heures dix                                         */
-/*  Grille de déduction. Cinq personnes, cinq créneaux.                */
+/*  JOUR 7 · 16 septembre — Qui tenait la clé                          */
+/*  Grille : ABESSOLO 03h30 · OYONO 03h50 · MENGUE 04h10 (la clé)      */
+/*           NZE 04h30 · BEKALE 04h50. Unique avec la 10e contrainte.  */
 /* ================================================================== */
 
 const J7 = {
   slug: 'quatre-heures-dix',
-  titre: 'Quatre heures dix (brouillon)',
+  titre: 'Qui tenait la clé',
   genre: 'Grille de déduction',
   type: 'grille', ordre: 6, chrono_ref: 60,
   payload: {
-    enonce: `DOSSIER 7 · le registre de garde
+    enonce: `Il ne reste qu'une question : qui, la nuit du 16 au 17 septembre 1999, pouvait écrire dans le registre.
+
+— — —
+
+DOSSIER 7 · le registre de garde
 
 Cinq personnes se sont relayées cette nuit-là, une par créneau de vingt minutes,
 de 03h30 à 05h10. Une seule détenait la clé du registre.
@@ -387,15 +468,15 @@ de 03h30 à 05h10. Une seule détenait la clé du registre.
                  '03h30', '03h50', '04h10', '04h30', '04h50'],
     contraintes: [
       'Abessolo a pris le premier créneau ou le dernier.',
-      "Bekale est arrivé exactement quarante minutes après Mengue.",
+      'Bekale est arrivé exactement quarante minutes après Mengue.',
       "Nze n'a jamais eu la clé.",
       "La personne qui détenait la clé n'était ni la première ni la dernière.",
       'Oyono a précédé Nze, mais pas immédiatement.',
       "Mengue n'était pas là à 03h30.",
-      "Le registre a été ouvert pendant le créneau de celui qui détenait la clé.",
+      'Le registre a été ouvert pendant le créneau de celui qui détenait la clé.',
       'Abessolo ne détenait pas la clé.',
-      "Bekale a pris le dernier créneau de la nuit.",
-      "Celui qui détenait la clé a pris son créneau après Oyono.",
+      'Bekale a pris le dernier créneau de la nuit.',
+      'Celui qui détenait la clé a pris son créneau après Oyono.',
     ],
     consigne: "L'heure d'ouverture du registre.",
   },
@@ -404,9 +485,9 @@ de 03h30 à 05h10. Une seule détenait la clé du registre.
     resultat: '04H10',
   },
   indices: [
-    "Commence par Bekale : la neuvième contrainte le fixe, et la deuxième fixe alors Mengue.",
-    "Abessolo ne peut plus qu'être au premier créneau. Restent Nze et Oyono pour deux places.",
-    "La clé n'est ni au premier ni au dernier créneau, ni chez Nze, ni chez Abessolo. Il ne reste qu'une personne.",
+    'Commencez par Bekale : la neuvième contrainte le fixe, et la deuxième fixe alors Mengue.',
+    'Abessolo ne peut plus qu\'être au premier créneau. Restent Nze et Oyono pour deux places.',
+    "La clé n'est ni au premier ni au dernier créneau, ni chez Nze, ni chez Abessolo, et elle est après Oyono. Il ne reste qu'une personne.",
   ],
   anomalie: {
     ou: 'Les cinq noms, comparés à ceux du dossier 5.',
@@ -418,22 +499,40 @@ de 03h30 à 05h10. Une seule détenait la clé du registre.
 };
 
 /* ================================================================== */
-/*  JOUR 8 — L'enveloppe                                               */
-/*  La convergence. Les sept résultats décrivent le même instant.      */
-/*  À remplacer par un `assemblage` quand l'image sera prête.          */
+/*  JOUR 8 · 17 septembre 06h00 — La convergence                       */
 /* ================================================================== */
 
 const J8 = {
   slug: 'l-enveloppe',
-  titre: "L'enveloppe",
-  genre: 'La convergence',
+  titre: 'La convergence',
+  genre: 'Le dernier matin',
   type: 'saisie', ordre: 7, chrono_ref: null,
   payload: {
-    enonce: `« Sept dossiers. Vous ne m'avez jamais demandé pourquoi ceux-là.
-Je vous ai laissé croire qu'ils n'avaient rien en commun.
-Relisez vos sept résultats. Ils décrivent tous le même instant. »
+    enonce: `ADÈLE MBENG tenait la clé du registre en 1999.
+
+Elle n'a pas découvert cet acte il y a six mois en numérisant. Elle l'a écrit il y a vingt-sept ans. Elle a passé six mois à chercher quelqu'un capable de remonter jusqu'à elle — parce qu'une confession, on la croit ou on ne la croit pas ; une preuve, non.
+
+    « Oui. Je vous ai fait travailler six jours pour arriver à moi.
+      C'était le seul moyen que ça compte.
+      Pour Ruth, je suis désolée. Je ne pensais pas qu'elle irait aussi vite.
+
+      La maternité Sainte-Odile a été fermée par arrêté n° 561,
+      du 12 au 19 septembre 1999. Huit jours. Un bâtiment
+      administrativement mort.
+
+      Un enfant y est né quand même. Je l'ai mis au monde moi-même,
+      il n'y avait personne d'autre.
+
+      Un enfant sans déclaration n'a pas de nom. Pas d'école, pas de
+      papiers, pas de vie. Alors j'ai écrit le 10 — le dernier jour légal
+      avant la fermeture.
+
+      Et j'ai choisi le 10 pour une raison précise. Regardez la colonne
+      « jour » du registre. Il fallait qu'elle reste vraie. »
 
 — — —
+
+Vos sept résultats :
 
     Dossier 1    VENDREDI
     Dossier 2    1999
@@ -452,8 +551,8 @@ Un vendredi. En septembre 1999. Entre le 12 et le 19.`,
     resultat: '17 SEPTEMBRE 1999',
   },
   indices: [
-    "Les vendredis de septembre 1999 sont les 3, 10, 17 et 24.",
-    "Un seul tombe entre le 12 et le 19.",
+    'Les vendredis de septembre 1999 sont les 3, 10, 17 et 24.',
+    'Un seul tombe entre le 12 et le 19.',
   ],
   recompense: { nom: '', precision: '', gag: false },
   animations: { mode: 'toutes', sequence: ['descellement', 'tampon_ok', 'verdict_acte', 'recompense'] },
@@ -464,12 +563,34 @@ Un vendredi. En septembre 1999. Entre le 12 et le 19.`,
 const DOSSIERS = [J1, J2, J3, J4, J5, J6, J7, J8];
 
 const CONFIG = {
-  titre: 'LE FONDS 47',
+  titre: 'LE CARTON 47',
   debut: '2026-09-10',
   fin: '2026-09-17',
   fuseau: 'Africa/Libreville',
   heureOuverture: 6,
   heureVerdict: 6,
+
+  /* L'habillage — modifiable depuis /admin, onglet « L'habillage ». */
+  skin: 'grimoire',
+  amorcage: true,
+  surtitre: 'GREFFE DU CARTON 47',
+  cote: '1709',
+  intro: {
+    titre: 'Huit jours dans un carton.',
+    texte: [
+      "Du 10 au 17 septembre, un dossier s'ouvre chaque jour. Une déposition, une pièce, une serrure — jamais deux fois le même genre d'énigme.",
+      'Chaque dossier résolu relève un scellé. Huit scellés, et le dix-sept au soir, tout ce qui était fermé s\'ouvre en même temps.',
+      "Personne ne sait qui tient le greffe. On l'appelle l'Archiviste. Il a résolu chaque dossier avant vous, en un temps qu'il ne révèle qu'une fois le vôtre déposé — jamais avant.",
+      'Rien n\'oblige à faire vite. Mais le battre, ne serait-ce qu\'une fois, en dit long sur qui vous êtes.',
+    ].join('\n'),
+    bouton: 'Entrer dans le greffe',
+  },
+  attente: {
+    titre: "Le dossier n'est pas encore versé.",
+    texte: "Il s'ouvrira de lui-même. Rien à faire d'ici là, sinon y penser.",
+  },
+  piedFonds: 'CE QUI EST SCELLÉ LE RESTE JUSQU’AU DIX-SEPT.',
+
   programme: DOSSIERS.map((d) => d.slug),
   codeFinal: '17091999',
   paliers: [60, 120, 180],
@@ -477,30 +598,39 @@ const CONFIG = {
   blocageMinutes: 10,
   tailleFonds: 47,
   seuilAnomalies: 4,
-  titreVerdict: 'Les sept scellés sont levés',
-  lettreFinale: `L'Archiviste n'existe pas. Les sept affaires non plus.
-Le fonds, les temps de référence, la trahison du cinquième jour : tout est de ma main.
+  titreVerdict: "L'acte rectifié",
+  lettreFinale: `Adèle n'existe pas. Okoumé non plus. Ruth n'a jamais été renvoyée,
+et je m'excuse pour la nuit où tu l'as cru.
 
-La seule chose vraie de ces quarante-sept dossiers, c'est que tu es né un vendredi
-17 septembre 1999, que la mairie s'est trompée de sept jours, et que quelqu'un a mis
-sept jours à te les rendre.
+Le carton 47 est vide, l'arrêté est faux, et le registre est de ma main.
 
-Bon anniversaire. — Ce soir, 17h00. Deux couverts.`,
+La seule chose vraie de toute cette affaire, c'est que tu es né un vendredi
+17 septembre 1999, que la mairie s'est trompée de sept jours, et que
+quelqu'un a mis sept jours à te les rendre.
+
+Bon anniversaire, bébé.
+Ce soir. 17h00. Deux couverts.`,
   lettreFinaleAnomalies: `Tu avais compris depuis mardi. Tu as continué quand même.
 C'est pour ça que c'est toi.
 
-L'Archiviste n'existe pas. Les sept affaires non plus. Tout est de ma main.
-La seule chose vraie, c'est que tu es né un vendredi 17 septembre 1999, que la mairie
-s'est trompée de sept jours, et que quelqu'un a mis sept jours à te les rendre.
+Adèle n'existe pas. Okoumé non plus. Ruth n'a jamais été renvoyée, et je
+m'excuse pour la nuit où tu l'as cru. Le carton 47 est vide, l'arrêté est
+faux, et le registre est de ma main.
 
-Bon anniversaire. — Ce soir, 17h00. Deux couverts.`,
+La seule chose vraie, c'est que tu es né un vendredi 17 septembre 1999,
+que la mairie s'est trompée de sept jours, et que quelqu'un a mis sept
+jours à te les rendre.
+
+Bon anniversaire, bébé.
+Ce soir. 17h00. Deux couverts.`,
   refus: [
     'Dossier scellé. Consultation réservée.',
     "Ce dossier a été retiré du fonds le 3 juin 1997. Aucun motif n'est indiqué.",
     'Chemise vide.',
-    "Vous n'avez pas ouvert celui d'aujourd'hui.",
+    "Vous n'avez pas terminé celui d'aujourd'hui.",
     'Réservé.',
-    'Le dossier existe. Vous, pas encore.',
+    "Le dossier existe. Vous, pas encore.",
+    'Consultation refusée : demande hors des heures de nuit.',
   ],
 };
 
@@ -514,20 +644,21 @@ if (pilote() !== 'supabase') {
 for (const d of DOSSIERS) {
   await enregistrerDossier({ recompense: { nom: '', precision: '', gag: false }, ...d });
   const n = (d.solution?.reponses || []).length;
-  console.log(`\x1b[32m✓\x1b[0m jour ${d.ordre + 1} · ${d.titre}  \x1b[90m(${d.type}, ${n} formulation${n > 1 ? 's' : ''})\x1b[0m`);
+  const i = (d.indices || []).length;
+  console.log(`\x1b[32m✓\x1b[0m jour ${d.ordre + 1} · ${d.titre}  \x1b[90m(${d.type}, ${n} formulation${n > 1 ? 's' : ''}, ${i} indice${i > 1 ? 's' : ''})\x1b[0m`);
 }
 
 await ecrireConfig(CONFIG);
-console.log(`\x1b[32m✓\x1b[0m configuration : ${CONFIG.debut} → ${CONFIG.fin}, ${CONFIG.fuseau}, bascule à ${CONFIG.heureOuverture}h`);
+console.log(`\x1b[32m✓\x1b[0m ${CONFIG.titre} — ${CONFIG.debut} → ${CONFIG.fin}, ${CONFIG.fuseau}, bascule à ${CONFIG.heureOuverture}h`);
+console.log(`\x1b[32m✓\x1b[0m indices demandables à ${CONFIG.paliers.join(', ')} min après ouverture de la manche`);
 
 console.log(`
-\x1b[34mPour parcourir la semaine\x1b[0m
-  SIM_DATE=2026-09-10T09:00:00+01:00 npm run dev     # jour 1
-  SIM_DATE=2026-09-14T09:00:00+01:00 npm run dev     # jour 5, l'imposteur
-  SIM_DATE=2026-09-17T07:00:00+01:00 npm run dev     # la convergence
+\x1b[34mPour jouer aujourd'hui\x1b[0m
+  npm run aujourdhui        puis  npm run dev
+  npm run aujourdhui -- 5   pour sauter au jour 5
 
 \x1b[34mCe qui t'attend dans /admin\x1b[0m
-  · les récompenses sont TOUTES vides — c'est à toi de les écrire
-  · les dossiers 2 à 7 portent « (brouillon) » : mécaniques justes, textes à durcir
-  · le dossier 8 est une saisie ; passe-le en « assemblage » quand l'image sera prête
+  · les 8 récompenses sont vides — les jours 2 et 5 portent le drapeau « gag »
+  · les paliers d'indices se règlent dans Les règles
+  · les deux lettres du 17 sont écrites, à relire et à signer autrement si tu veux
 `);

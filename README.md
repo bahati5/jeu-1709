@@ -90,6 +90,7 @@ npm run supabase     # vérifie la connexion ET que RLS tient vraiment
 | **Les dossiers** | Créer, éditer, dupliquer, supprimer une manche. Un formulaire par type. Énoncés, réponses acceptées, indices, récompense, anomalie, chrono de référence |
 | **Le programme** | Quel dossier tombe quel jour, ou aucun. Changer les dates : le nombre de lignes suit |
 | **Quand ça commence** | Dates, fuseau, heure de bascule, heure du verdict |
+| **L'habillage** | La direction visuelle (deux skins), le sur-titre, la cote, l'écran d'accès, l'introduction, l'écran d'attente, la ligne sous la grille des 47 |
 | **Les animations** | Activer/désactiver chaque scène, régler sa durée. Le choix des scènes d'un dossier se fait dans son éditeur |
 | **Les médias** | Téléverser les fichiers, les rattacher à un dossier. Un média rattaché renvoie 404 tant que son dossier n'est pas ouvert |
 | **Les règles** | Code final, paliers d'indices, tentatives, blocage, les deux lettres du dernier jour, les notes de refus |
@@ -97,6 +98,28 @@ npm run supabase     # vérifie la connexion ET que RLS tient vraiment
 
 **Ajouter un dossier ne demande aucun déploiement.** Le premier jour, seul le
 dossier du jour 1 doit exister : les suivants s'écrivent pendant la semaine.
+
+---
+
+## Les deux habillages
+
+Le même jeu, deux directions. Ça se change dans `/admin` → **L'habillage**, et
+c'est immédiat : recharger la page du jeu suffit, rien à redéployer.
+
+| | **Le Grimoire** *(par défaut)* | **La Chambre 47** |
+|---|---|---|
+| Fond | nuit violacée, flaque de lumière dorée | vert sombre, presque noir |
+| Titres | Cormorant Garamond, gravé | Special Elite, machine à écrire |
+| Texte | Spectral | Lora |
+| Formes | arches, onglets en pastilles | angles droits, onglets carrés |
+| Ce que ça raconte | un registre ancien qu'on rouvre | un bureau d'archives des années 60 |
+
+Le papier déchiré, la cire, les scellés et les treize scènes sont les mêmes des
+deux côtés : seules les couleurs, les fontes et les courbures changent.
+
+L'introduction, l'écran d'attente et le sur-titre se saisissent dans le même
+onglet. **Titre d'introduction vide = pas d'écran d'introduction** : le jeu
+s'ouvre directement sur la manche.
 
 ---
 

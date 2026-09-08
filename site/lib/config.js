@@ -9,6 +9,21 @@ import { ANIM_DEFAUT } from './animations.js';
 export const CONFIG_DEFAUT = {
   titre: 'LE FONDS 47',
 
+  /* L'habillage. Deux directions, choisies depuis /admin. */
+  skin: 'grimoire',          // 'grimoire' | 'chambre'
+  amorcage: true,            // l'écran d'accès au premier chargement
+  surtitre: '',              // la ligne en petites capitales, au-dessus du titre
+  cote: '',                  // la cote affichée dans le bandeau (ex. 1709)
+
+  /* L'introduction — vide = pas d'écran d'introduction. Tout se saisit. */
+  intro: { titre: '', texte: '', bouton: 'Entrer' },
+
+  /* L'écran d'attente, avant l'ouverture. */
+  attente: { titre: '', texte: '' },
+
+  /* Le pied de la vue « le fonds ». */
+  piedFonds: '',
+
   /* Le calendrier */
   debut: '2026-09-10',
   fin: '2026-09-17',
@@ -61,6 +76,11 @@ export function normaliserConfig(c) {
   cfg.heureVerdict = borne(cfg.heureVerdict, 0, 23, CONFIG_DEFAUT.heureVerdict);
   cfg.animations = { ...ANIM_DEFAUT, ...(cfg.animations || {}) };
   cfg.seuilAnomalies = Math.max(0, Number(cfg.seuilAnomalies) ?? CONFIG_DEFAUT.seuilAnomalies);
+
+  cfg.skin = cfg.skin === 'chambre' ? 'chambre' : 'grimoire';
+  cfg.amorcage = cfg.amorcage !== false;
+  cfg.intro = { ...CONFIG_DEFAUT.intro, ...(cfg.intro || {}) };
+  cfg.attente = { ...CONFIG_DEFAUT.attente, ...(cfg.attente || {}) };
   return cfg;
 }
 

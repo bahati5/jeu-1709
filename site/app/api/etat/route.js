@@ -4,7 +4,7 @@
  * n'existe pas pour lui : les dossiers futurs, les réponses, les récompenses
  * non gagnées, les anomalies non trouvées.
  */
-import { estJoueur, introuvable, json } from '@/lib/acces';
+import { estJoueur, estAdmin, introuvable, json } from '@/lib/acces';
 import { etatTemps, maintenant, ongletsOuverts, verdictOuvert, indicesDepuis, minutesDepuis } from '@/lib/temps';
 import { lireConfig, lireEtat, lireDossier, listerAnimations, amorcerAnimations } from '@/lib/donnees';
 import { versClient } from '@/lib/types';
@@ -18,14 +18,30 @@ export async function GET() {
   const etat = await lireEtat();
   const e = etatTemps(cfg, maintenant());
 
+  /* La barre de répétition n'existe que pour elle. Elle est liée au cookie
+     admin, pas à un réglage : il n'y a donc rien à penser à éteindre avant
+     de lui envoyer le lien. Lui ne l'aura jamais. */
+  const repetition = await estAdmin();
+
   const base = {
+    repetition,
     phase: e.phase,
     titre: cfg.titre,
+    /* L'habillage — saisi depuis /admin, jamais écrit ici. */
+    skin: cfg.skin,
+    amorcage: cfg.amorcage,
+    surtitre: cfg.surtitre,
+    cote: cfg.cote,
+    intro: cfg.intro,
+    attente: cfg.attente,
+    piedFonds: cfg.piedFonds,
     horloge: e.t,
     fuseau: cfg.fuseau,
     tailleFonds: cfg.tailleFonds,
     animations: cfg.animations,
     vuesAnim: etat.vuesAnim || {},
+    /* Les paliers ne servent qu'à la barre de répétition — elle seule. */
+    ...(repetition ? { paliers: cfg.paliers } : {}),
   };
 
   /* Avant l'ouverture : un sceau et un compte à rebours. Rien d'autre. */
@@ -44,16 +60,24 @@ export async function GET() {
     if (d && d.actif !== false) {
       manche = versClient(d, { resolu });
 
-      /* Les indices ouverts, et eux seuls.
+      /* Les indices se DEMANDENT. Le temps ne fait que les rendre
+         demandables ; c'est lui qui décide d'en ouvrir un, et on ne lui
+         sert que ceux qu'il a effectivement demandés.
          On compte avec l'heure du SERVEUR (e.t), pas Date.now() : sous
-         SIM_DATE les deux divergent, et les indices ne s'ouvriraient
-         jamais en répétition. */
+         SIM_DATE les deux divergent, et rien ne s'ouvrirait en répétition. */
       const debut = etat.debuts?.[slug] ? Date.parse(etat.debuts[slug]) : null;
-      const n = indicesDepuis(cfg, debut, e.t);
-      manche.indices = (d.indices || []).slice(0, n);
-      manche.indicesTotal = (d.indices || []).length;
+      const nbIndices = (d.indices || []).length;
+      const parLeTemps = Math.min(indicesDepuis(cfg, debut, e.t), nbIndices);
+      const demandes = Math.min(etat.indicesVus?.[slug] || 0, nbIndices);
+
+      manche.indices = (d.indices || []).slice(0, demandes);   // rien de plus
+      manche.indicesTotal = nbIndices;
+      manche.indicesDemandes = demandes;
+      manche.indicesDisponibles = parLeTemps;
+      manche.peutDemander = demandes < parLeTemps;
       manche.minutes = minutesDepuis(debut, e.t);
-      manche.prochainIndice = (cfg.paliers || [])[n] ?? null;
+      /* Le palier du PROCHAIN indice qu'il pourra demander. */
+      manche.prochainIndice = demandes < nbIndices ? ((cfg.paliers || [])[demandes] ?? null) : null;
 
       /* Une serrure ouverte révèle son texte — après coup seulement. */
       if (d.type === 'serrure' && etat.serrures?.[slug]) {

@@ -5,19 +5,14 @@
  * lui donne. Un onglet qui n'est pas ouvert n'est pas rendu — jamais grisé,
  * jamais verrouillé : un onglet grisé annonce qu'il y a quelque chose
  * derrière, et le mystère meurt là.
+ *
+ * L'habillage (skin, surtitre, cote, introduction, écran d'attente) vient
+ * lui aussi de la base : rien de tout ça n'est écrit dans ce fichier.
  */
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Manche } from './manches';
 import { Lecteur } from './scenes';
 import { sequencePour } from '@/lib/animations';
-
-/* L'ordre de lecture des onglets, et leur nom. Le serveur décide
-   lesquels sont ouverts ; il ne décide pas dans quel sens on les lit. */
-const ORDRE = ['manche', 'enveloppe', 'invitation', 'tableau', 'fonds'];
-const LIBELLES = {
-  manche: 'La manche', enveloppe: "L'enveloppe", invitation: "L'invitation",
-  tableau: 'Le tableau', fonds: 'Le fonds',
-};
 
 const api = async (url, corps, methode = 'POST') => {
   const r = await fetch(url, {
@@ -28,11 +23,41 @@ const api = async (url, corps, methode = 'POST') => {
   return r.json().catch(() => ({}));
 };
 
+/* Une mémoire de session, tolérante : un navigateur qui la refuse ne
+   casse rien, l'écran se rejoue simplement au chargement suivant. */
+const vu = {
+  lire(cle) { try { return sessionStorage.getItem(cle) === '1'; } catch { return false; } },
+  poser(cle) { try { sessionStorage.setItem(cle, '1'); } catch { /* tant pis */ } },
+};
+
+/* Les poussières d'or. Déterministes : le serveur et le client doivent
+   rendre exactement la même chose, sinon React proteste. */
+const MOTES = Array.from({ length: 16 }, (_, i) => {
+  const a = (i * 2654435761) % 1000 / 1000;
+  const b = (i * 40503 + 977) % 1000 / 1000;
+  return {
+    left: `${(a * 96 + 2).toFixed(2)}%`,
+    top: `${(b * 92 + 4).toFixed(2)}%`,
+    opacity: 0.12 + a * 0.3,
+    animationDelay: `${(b * 9).toFixed(2)}s, ${(a * 4).toFixed(2)}s`,
+    animationDuration: `${(8 + b * 7).toFixed(1)}s, ${(3 + a * 3).toFixed(1)}s`,
+  };
+});
+
+const NOMS_ONGLETS = {
+  manche: 'La manche', tableau: 'Le tableau', fonds: 'Le fonds',
+  enveloppe: "L'enveloppe", invitation: "L'invitation",
+};
+/* L'ordre d'affichage. Ce que le serveur n'a pas ouvert n'apparaît pas. */
+const ORDRE_ONGLETS = ['manche', 'tableau', 'fonds', 'enveloppe', 'invitation'];
+
 export default function Jeu() {
   const [d, setD] = useState(null);
-  const [onglet, setOnglet] = useState(null);
+  const [onglet, setOnglet] = useState('manche');
   const [scenes, setScenes] = useState(null);
   const [ctx, setCtx] = useState({});
+  const [boot, setBoot] = useState(false);
+  const [intro, setIntro] = useState(false);
 
   const charger = useCallback(async () => {
     const r = await fetch('/api/etat', { cache: 'no-store' });
@@ -41,6 +66,24 @@ export default function Jeu() {
   }, []);
 
   useEffect(() => { charger(); }, [charger]);
+
+  /* L'amorçage et l'introduction : une fois par session, et seulement si
+     elle les a activés depuis la console. */
+  useEffect(() => {
+    if (!d || d.phase === 'ferme') return;
+    /* Si « la manche » n'est pas ouverte, on se pose sur le premier onglet
+       qui l'est — sinon l'écran reste vide sans raison visible. */
+    const ouverts = ORDRE_ONGLETS.filter((o) => (d.onglets || []).includes(o));
+    if (ouverts.length && !ouverts.includes(onglet)) setOnglet(ouverts[0]);
+    if (d.amorcage && !vu.lire('amorce')) setBoot(true);
+    if (d.intro?.titre && !vu.lire('intro')) setIntro(true);
+  }, [d?.amorcage, d?.intro?.titre, d?.phase, d?.onglets?.join(',')]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!boot) return;
+    const t = setTimeout(() => { setBoot(false); vu.poser('amorce'); }, 3000);
+    return () => clearTimeout(t);
+  }, [boot]);
 
   /* Ouvrir la manche fait partir le chrono et l'horloge des indices. */
   useEffect(() => {
@@ -51,8 +94,17 @@ export default function Jeu() {
 
   const jouer = useCallback((declencheur, contexte = {}) => {
     if (!d) return;
-    const seq = sequencePour(declencheur, d.manche, d.catalogue || [], d.animations, d.vuesAnim);
-    setCtx({ titre: d.titre, ...contexte });
+    const seq = sequencePour(declencheur, d.manche, d.catalogue || [], d.animations, d.vuesAnim)
+      /* Une scène sans matière ne se joue pas : une récompense qu'elle n'a
+         pas encore écrite ne doit pas devenir deux secondes d'écran noir. */
+      .filter((s) => {
+        if (s.cle === 'recompense') return Boolean(contexte.recompense?.nom);
+        if (['indice', 'parchemin', 'anomalie', 'verdict_acte'].includes(s.cle)) {
+          return Boolean(contexte.texte);
+        }
+        return true;
+      });
+    setCtx({ titre: d.titre, date: d.jour?.date, ...contexte });
     if (seq.length) setScenes(seq); else charger();
   }, [d, charger]);
 
@@ -62,21 +114,12 @@ export default function Jeu() {
     charger();
   }, [charger]);
 
-  if (!d) return <main className="wrap"><p className="chargement">…</p></main>;
+  const skin = `sk ${d?.skin === 'chambre' ? 'chambre' : ''}`;
+
+  if (!d) return <div className="sk"><Decor /><div className="colonne"><p className="chargement">…</p></div></div>;
 
   if (d.phase === 'ferme') {
-    return <main className="wrap"><p className="chargement">Introuvable.</p></main>;
-  }
-
-  /* Avant l'ouverture : un sceau et un compte à rebours. */
-  if (d.phase !== 'enquete') {
-    return (
-      <main className="wrap ecran-avant">
-        <div className="sceau grand" />
-        <h1>{d.titre}</h1>
-        <Compte cible={d.ouverture} horloge={d.horloge} />
-      </main>
-    );
+    return <div className={skin}><Decor /><div className="colonne"><p className="chargement">INTROUVABLE</p></div></div>;
   }
 
   const repondre = async (saisie) => {
@@ -89,97 +132,214 @@ export default function Jeu() {
     } else if (!r.ok) {
       jouer('reponse-fausse');
     } else charger();
+    return r;
   };
 
   const passe = async (saisie) => {
     const r = await api('/api/verify', { slug: d.manche.slug, quoi: 'passe', saisie });
     if (r.ok) jouer('serrure-ouverte', { texte: r.revele });
     else jouer('reponse-fausse');
+    return r;
   };
 
-  const code = async (saisie) => {
-    const r = await api('/api/verify', { quoi: 'code', saisie });
-    if (r.ok) jouer('code-juste', { texte: saisie });
-    else jouer('reponse-fausse');
+  const indice = async () => {
+    const r = await api('/api/indice', { slug: d.manche.slug });
+    if (r.ok) jouer('indice', { texte: r.texte, rang: r.rang, minutes: d.manche.minutes });
+    return r;
   };
 
   const anomalie = async (saisie) => {
     const r = await api('/api/verify', { slug: d.manche.slug, quoi: 'anomalie', saisie });
     if (r.ok) jouer('anomalie', { texte: r.texte });
+    return r;
   };
 
-  /* Le serveur dit lesquels sont ouverts ; l'ordre de lecture est ici.
-     La manche du jour d'abord : c'est ce pour quoi il est venu. */
-  const onglets = ORDRE.filter((o) => (d.onglets || []).includes(o));
-  const actif = onglets.includes(onglet) ? onglet : onglets[0];
-
   return (
-    <main className="wrap">
-      <Bandeau d={d} />
+    <div className={skin}>
+      <Decor />
 
-      <nav className="onglets">
-        {onglets.map((o) => (
-          <button key={o} className={actif === o ? 'on' : ''} aria-current={actif === o}
-            onClick={() => setOnglet(o)}>
-            {LIBELLES[o] || o}
-          </button>
-        ))}
-      </nav>
+      <div className="colonne">
+        {intro && d.phase !== 'ferme'
+          ? <Intro intro={d.intro} surtitre={d.surtitre} onFini={() => { setIntro(false); vu.poser('intro'); }} />
+          : d.phase !== 'enquete'
+            ? <Attente d={d} />
+            : (
+              <div className="jeu">
+                <Tete d={d} />
+                <Scelles d={d} />
 
-      {actif === 'manche' && (
-        d.manche
-          ? <Manche m={d.manche} onRepondre={repondre} onPasse={passe} onAnomalie={anomalie} />
-          : <p className="veille">Le greffe ne verse rien aujourd'hui.</p>
-      )}
+                {onglet === 'manche' && (
+                  d.manche
+                    ? <Manche m={d.manche} onRepondre={repondre} onPasse={passe}
+                        onAnomalie={anomalie} onIndice={indice} />
+                    : <p className="veille">Le greffe ne verse rien aujourd'hui.</p>
+                )}
+                {onglet === 'tableau' && <Tableau d={d} />}
+                {onglet === 'fonds' && <Fonds d={d} />}
 
-      {actif === 'tableau' && <Tableau d={d} />}
-      {actif === 'fonds' && <Fonds d={d} />}
-      {actif === 'enveloppe' && <Enveloppe d={d} onCode={code} />}
-      {actif === 'invitation' && <Invitation />}
+                <nav className="onglets">
+                  {ORDRE_ONGLETS.filter((o) => (d.onglets || []).includes(o)).map((o) => (
+                    <button key={o} type="button" className={onglet === o ? 'on' : ''}
+                      onClick={() => setOnglet(o)}>{NOMS_ONGLETS[o] || o}</button>
+                  ))}
+                </nav>
+              </div>
+            )}
+      </div>
+
+      {boot && <Amorcage titre={d.titre} onFini={() => { setBoot(false); vu.poser('amorce'); }} />}
 
       {scenes && (
         <Lecteur sequence={scenes} contexte={ctx} reglages={d.animations} onFini={finScenes} />
       )}
-    </main>
+
+      {d.repetition && !boot && !intro && (
+        <Repetition d={d} recharger={charger} jouerScene={(cle) => {
+          const a = (d.catalogue || []).find((x) => x.cle === cle);
+          setCtx({
+            titre: d.titre, date: d.jour?.date, texte: 'Répétition — texte de démonstration.',
+            recompense: { nom: 'Une récompense', precision: 'pour voir la carte se retourner' },
+            minutes: 22, chronoRef: 35, rang: 3, total: d.scelles?.total || 8,
+          });
+          setScenes([{ cle, nom: a?.nom || cle, duree: a?.duree_ms || 2600, courte: false, options: {} }]);
+        }} />
+      )}
+    </div>
   );
 }
 
-function Bandeau({ d }) {
+/* ------------------------------------------------------------------ */
+/*  L'ambiance                                                         */
+/* ------------------------------------------------------------------ */
+
+function Decor() {
   return (
-    <header className="bandeau">
-      <h1>{d.titre}</h1>
-      <div className="planche">
-        {Array.from({ length: d.scelles?.total || 0 }, (_, i) => (
-          <span key={i} className={`sceau ${i < (d.scelles?.pris || 0) ? 'pris' : ''}`} />
+    <>
+      <div className="fond" aria-hidden="true" />
+      <div className="grain" aria-hidden="true" />
+      <div className="motes" aria-hidden="true">
+        {MOTES.map((s, i) => <b key={i} style={s} />)}
+      </div>
+    </>
+  );
+}
+
+/* L'amorçage : le nom qui se tape, la barre qui se charge. */
+function Amorcage({ titre, onFini }) {
+  return (
+    <div className="boot" onClick={onFini} role="presentation">
+      <div>
+        <div className="boot-nom">{titre}</div>
+        <div className="boot-barre"><i /></div>
+        <div className="boot-pied">ACCÈS AUTORISÉ — TOUCHEZ POUR ENTRER</div>
+      </div>
+    </div>
+  );
+}
+
+/* L'introduction — son texte se saisit depuis la console. */
+function Intro({ intro, surtitre, onFini }) {
+  const paras = String(intro?.texte || '').split('\n').filter((l) => l.trim());
+  return (
+    <section className="intro">
+      {surtitre && <p className="surtitre">{surtitre}</p>}
+      <h1 className="titre">{intro.titre}</h1>
+      {paras.map((p, i) => <p className="corps" key={i}>{p}</p>)}
+      <button type="button" className="bouton" onClick={onFini}>{intro.bouton || 'Entrer'}</button>
+    </section>
+  );
+}
+
+/* Avant l'ouverture : un sceau de cire, un compte à rebours, rien d'autre. */
+function Attente({ d }) {
+  return (
+    <section className="attente">
+      <div className="cire">47</div>
+      {d.surtitre && <p className="surtitre">{d.surtitre}</p>}
+      <h2 className="titre">{d.attente?.titre || d.titre}</h2>
+      {d.attente?.texte && <p>{d.attente.texte}</p>}
+      <Compte cible={d.ouverture} horloge={d.horloge} />
+    </section>
+  );
+}
+
+function Compte({ cible, horloge }) {
+  const [t, setT] = useState(Math.max(0, (cible || 0) - (horloge || 0)));
+  useEffect(() => {
+    const id = setInterval(() => setT((x) => Math.max(0, x - 1000)), 1000);
+    return () => clearInterval(id);
+  }, []);
+  const s = Math.floor(t / 1000);
+  const deux = (n) => String(n).padStart(2, '0');
+  const cases = [
+    [String(Math.floor(s / 86400)), 'JOURS'],
+    [deux(Math.floor(s / 3600) % 24), 'HEURES'],
+    [deux(Math.floor(s / 60) % 60), 'MINUTES'],
+    [deux(s % 60), 'SECONDES'],
+  ];
+  return (
+    <div className="compte">
+      {cases.map(([v, l]) => <span key={l}>{v}<em>{l}</em></span>)}
+    </div>
+  );
+}
+
+function Tete({ d }) {
+  return (
+    <header className="tete">
+      <div className="tete-g">
+        {d.surtitre && <span>{d.surtitre}</span>}
+        <h1>{d.titre}</h1>
+      </div>
+      <div className="tete-d">
+        {d.cote && <b>{d.cote}</b>}
+        <span>JOUR {d.jour.index + 1}/{d.jour.total}</span>
+      </div>
+    </header>
+  );
+}
+
+function Scelles({ d }) {
+  const total = d.scelles?.total || 0;
+  const pris = d.scelles?.pris || 0;
+  return (
+    <div className="scelles">
+      <p className="scelles-t"><span>SCELLÉS RELEVÉS</span><b>{pris} / {total}</b></p>
+      <div className="scelles-g"
+        style={{ gridTemplateColumns: `repeat(${Math.min(Math.max(total, 1), 8)}, 1fr)` }}>
+        {Array.from({ length: total }, (_, i) => (
+          <span key={i} className={`sceau-c ${i < pris ? 'pris' : ''}`}>{i + 1}</span>
         ))}
       </div>
-      <small>jour {d.jour.index + 1} sur {d.jour.total}</small>
-    </header>
+      <div className="jauge"><i style={{ width: total ? `${(pris / total) * 100}%` : '0%' }} /></div>
+    </div>
   );
 }
 
 function Tableau({ d }) {
   return (
     <section className="board">
-      <h2 className="board-titre">Ce qui est établi</h2>
+      <h2>CE QUI EST ÉTABLI</h2>
       {!d.acquis.length && <p className="veille">Rien encore.</p>}
-      <ul className="board-liste">
+      <div className="acquis">
         {d.acquis.map((a) => (
-          <li key={a.slug}>
+          <div className="fiche" key={a.slug}>
+            <span className="trombone" aria-hidden="true" />
             <strong>{a.resultat || '—'}</strong>
-            <small>{a.titre} · {a.date}
-              {a.minutes != null && a.chronoRef != null &&
-                ` · ${a.minutes} min contre ${a.chronoRef}`}</small>
-          </li>
+            <small>
+              {a.titre} · {a.date}
+              {a.minutes != null && a.chronoRef != null && ` · ${a.minutes} min contre ${a.chronoRef}`}
+            </small>
+          </div>
         ))}
-      </ul>
+      </div>
 
       {!!d.anomalies.length && (
         <>
-          <h2 className="board-titre alerte">Ne relève d'aucun dossier</h2>
-          <ul className="board-liste">
-            {d.anomalies.map((a) => <li key={a.slug}><em>{a.texte}</em></li>)}
-          </ul>
+          <h2 className="alerte">NE RELÈVE D'AUCUN DOSSIER</h2>
+          <div className="anos">
+            {d.anomalies.map((a) => <p key={a.slug}>{a.texte}</p>)}
+          </div>
         </>
       )}
     </section>
@@ -191,66 +351,98 @@ function Fonds({ d }) {
   const pris = d.scelles?.pris || 0;
   return (
     <section className="fonds">
-      <p className="fonds-t">{total} dossiers. Vous en avez ouvert <b>{pris}</b>.</p>
-      <div className="fonds-grille">
+      <h2>LE FONDS</h2>
+      <p className="fonds-i">{total} dossiers. Vous en avez ouvert {pris}.</p>
+      <div className="fonds-g">
         {Array.from({ length: total }, (_, i) => (
-          <span key={i} className={`fonds-case ${i < pris ? 'pris' : ''}`}>
+          <span key={i} className={`fonds-c ${i < pris ? 'ouvert' : ''}`}>
             {String(i + 1).padStart(2, '0')}
           </span>
         ))}
       </div>
+      {d.piedFonds && <p className="fonds-p">{d.piedFonds}</p>}
     </section>
   );
 }
 
-/* Le dernier jour, une fois la manche close : l'acte à signer.
-   Le code lui-même vit dans la config, et n'a jamais transité par ici. */
-function Enveloppe({ d, onCode }) {
-  const [v, setV] = useState('');
-  if (d.codeOk) {
-    return (
-      <section className="ma enveloppe">
-        <p className="ma-resolu">Acte enregistré.</p>
-        <p className="ma-consigne">Le fonds est clos. Ce qui est établi reste au tableau.</p>
-      </section>
-    );
+/* ------------------------------------------------------------------ */
+/*  La barre de répétition — n'existe que pour le cookie admin         */
+/* ------------------------------------------------------------------ */
+
+function Repetition({ d, recharger, jouerScene }) {
+  const [ouvert, setOuvert] = useState(true);
+  const [reponse, setReponse] = useState(null);
+  const [rapide, setRapide] = useState((d.paliers?.[0] ?? 60) === 0);
+
+  const act = async (corps) => {
+    const r = await api('/api/repetition', corps);
+    await recharger();
+    return r;
+  };
+
+  const jour = (d.jour?.index ?? 0) + 1;
+  const total = d.jour?.total ?? 8;
+
+  if (!ouvert) {
+    return <button className="rep-poignee" onClick={() => setOuvert(true)}>répétition</button>;
   }
-  return (
-    <section className="ma enveloppe">
-      <header className="ma-tete">
-        <small>Parquet — mairie centrale</small>
-        <h2>L'acte de clôture</h2>
-      </header>
-      <p className="ma-consigne">Portez ici le code que le fonds vous a laissé.</p>
-      <form className="ma-champ" onSubmit={(e) => { e.preventDefault(); if (v.trim()) onCode(v); }}>
-        <input value={v} onChange={(e) => setV(e.target.value)}
-          placeholder="…" autoComplete="off" aria-label="Le code de clôture" />
-        <button disabled={!v.trim()}>Signer</button>
-      </form>
-    </section>
-  );
-}
 
-function Invitation() {
   return (
-    <section className="board">
-      <h2 className="board-titre">Ce qui vous attend</h2>
-      <p className="veille">Le carton n'est pas encore gravé.</p>
-    </section>
-  );
-}
+    <aside className="rep">
+      <div className="rep-tete">
+        <strong>Répétition</strong>
+        <button onClick={() => setOuvert(false)} aria-label="replier">−</button>
+      </div>
 
-function Compte({ cible, horloge }) {
-  const [t, setT] = useState(cible - horloge);
-  useEffect(() => {
-    const id = setInterval(() => setT((x) => Math.max(0, x - 1000)), 1000);
-    return () => clearInterval(id);
-  }, []);
-  const s = Math.floor(t / 1000);
-  const deux = (n) => String(n).padStart(2, '0');
-  return (
-    <p className="compte">
-      {Math.floor(s / 86400)}j {deux(Math.floor(s / 3600) % 24)}:{deux(Math.floor(s / 60) % 60)}:{deux(s % 60)}
-    </p>
+      <div className="rep-ligne">
+        <button disabled={jour <= 1} onClick={() => act({ action: 'jour', jour: jour - 1 })}>◀</button>
+        <span className="rep-jour">jour {jour} / {total}</span>
+        <button disabled={jour >= total} onClick={() => act({ action: 'jour', jour: jour + 1 })}>▶</button>
+      </div>
+      <div className="rep-ligne rep-sauts">
+        {Array.from({ length: total }, (_, i) => (
+          <button key={i} className={jour === i + 1 ? 'on' : ''}
+            onClick={() => act({ action: 'jour', jour: i + 1 })}>{i + 1}</button>
+        ))}
+      </div>
+
+      <div className="rep-ligne">
+        <label className="rep-case">
+          <input type="checkbox" checked={rapide}
+            onChange={async (e) => {
+              setRapide(e.target.checked);
+              await act({ action: 'paliers', zero: e.target.checked });
+            }} />
+          Indices sans attendre
+        </label>
+      </div>
+
+      <div className="rep-ligne">
+        <button onClick={() => act({ action: 'manche.raz' })}>Rejouer ce jour</button>
+        <button onClick={() => act({ action: 'scenes.oublier' })}>Scènes en entier</button>
+      </div>
+
+      <div className="rep-ligne">
+        <button onClick={async () => setReponse(await act({ action: 'reponse' }))}>Voir la réponse</button>
+        <button className="rep-danger" onClick={async () => {
+          if (confirm('Tout remettre à zéro ?')) await act({ action: 'raz' });
+        }}>Tout à zéro</button>
+      </div>
+
+      {reponse?.ok && (
+        <div className="rep-reponse">
+          {reponse.passe && <p><span>passe</span> {reponse.passe}</p>}
+          <p><span>réponse</span> {reponse.reponse}</p>
+          {reponse.anomalie && <p><span>anomalie</span> {reponse.anomalie}</p>}
+        </div>
+      )}
+
+      <div className="rep-ligne rep-scenes">
+        <span className="rep-titre">Jouer une scène</span>
+        {(d.catalogue || []).map((a) => (
+          <button key={a.cle} onClick={() => jouerScene(a.cle)} title={a.nom}>{a.cle}</button>
+        ))}
+      </div>
+    </aside>
   );
 }

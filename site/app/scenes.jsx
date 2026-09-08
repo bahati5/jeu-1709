@@ -10,102 +10,182 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 /* ---- Les scènes. Chaque clé du catalogue a son rendu ici. ---- */
 
+/* Douze étincelles, déterministes : le serveur rend la même chose. */
+const ETINCELLES = Array.from({ length: 12 }, (_, i) => {
+  const a = (i / 12) * Math.PI * 2;
+  return {
+    '--ex': `${Math.round(Math.cos(a) * 110)}px`,
+    '--ey': `${Math.round(Math.sin(a) * 110)}px`,
+    animation: `eclat .7s ${0.12 + (i % 4) * 0.05}s cubic-bezier(.2,.85,.25,1) both`,
+  };
+});
+
 function Tampon({ texte, ko }) {
+  if (ko) return <div className="sc-tampon ko">{texte || 'REJETÉ'}</div>;
   return (
-    <div className={`sc-tampon ${ko ? 'ko' : ''}`}>
-      <span>{texte || (ko ? 'REJETÉ' : 'RECEVABLE')}</span>
+    <div style={{ position: 'relative' }}>
+      <div className="sc-tampon">{texte || 'VERSÉ'}</div>
+      <div className="sc-etincelles" aria-hidden="true">
+        {ETINCELLES.map((s, i) => <b key={i} style={s} />)}
+      </div>
     </div>
   );
 }
 
-function Sceau({ n }) {
+function Sceau({ n, total }) {
+  const reste = Number.isFinite(total) && Number.isFinite(n) ? total - n : null;
   return (
-    <div className="sc-sceau">
-      <div className="sc-cire"><span>{n ?? '·'}</span></div>
-      <p>Scellé versé au dossier</p>
+    <div>
+      <div className="sc-sceau">{n ?? '·'}</div>
+      <p className="sc-sceau-t">Le scellé est relevé.</p>
+      {reste != null && (
+        <p className="sc-sceau-s">
+          {reste > 0 ? `${reste} RESTE${reste > 1 ? 'NT' : ''}` : 'PLUS AUCUN NE TIENT'}
+        </p>
+      )}
     </div>
   );
 }
 
-function Chrono({ minutes, ref: reference }) {
+function Chrono({ minutes, reference }) {
   const a = Number(minutes);
   const b = Number(reference);
   const ok = Number.isFinite(a) && Number.isFinite(b);
-  const max = ok ? Math.max(a, b) : 1;
+  const max = ok ? Math.max(a, b, 1) : 1;
   return (
     <div className="sc-chrono">
-      <p className="sc-chrono-t">Contre l'Archiviste</p>
-      <div className="sc-barre"><i style={{ '--p': `${ok ? (a / max) * 100 : 0}%` }} className="moi" /><span>vous · {ok ? `${a} min` : '—'}</span></div>
-      <div className="sc-barre"><i style={{ '--p': `${ok ? (b / max) * 100 : 0}%` }} className="lui" /><span>lui · {ok ? `${b} min` : '—'}</span></div>
-      {ok && <p className="sc-verdict-chrono">{a < b ? 'Vous avez été plus rapide.' : a === b ? 'À la seconde près.' : `${a - b} minutes de plus.`}</p>}
+      <p className="sc-chrono-t">CONTRE L’ARCHIVISTE</p>
+      <div className="sc-barre">
+        <i className="moi" style={{ width: ok ? `${(a / max) * 100}%` : 0 }} />
+        <span>VOUS · {ok ? `${a} min` : '—'}</span>
+      </div>
+      <div className="sc-barre">
+        <i className="lui" style={{ width: ok ? `${(b / max) * 100}%` : 0 }} />
+        <span className={ok && b >= a ? 'sombre' : ''}>L’ARCHIVISTE · {ok ? `${b} min` : '—'}</span>
+      </div>
+      {ok && (
+        <p className="sc-chrono-v">
+          {a < b ? `${b - a} minutes de mieux que lui.`
+            : a === b ? 'À la minute près.'
+              : `${a - b} minutes de plus que lui.`}
+        </p>
+      )}
     </div>
   );
 }
 
-function Recompense({ recompense }) {
+function Recompense({ recompense, rang, total }) {
   const [ouvert, setOuvert] = useState(false);
   useEffect(() => { const t = setTimeout(() => setOuvert(true), 700); return () => clearTimeout(t); }, []);
   if (!recompense?.nom) return null;
   return (
     <div className={`sc-carte ${ouvert ? 'ouverte' : ''}`}>
-      <div className="sc-carte-dos"><span className="sc-carte-cire" /></div>
-      <div className="sc-carte-face">
-        <small>Ce qui vous revient</small>
-        <strong>{recompense.nom}</strong>
-        {recompense.precision && <p>{recompense.precision}</p>}
+      <div className="sc-carte-i">
+        <div className="sc-dos"><b /></div>
+        <div className="sc-face">
+          <span className="eti">CE QUI VOUS REVIENT</span>
+          <strong>{recompense.nom}</strong>
+          {recompense.precision && <span className="pre">{recompense.precision}</span>}
+          {rang != null && total != null && (
+            <span className="pied">PIÈCE {String(rang).padStart(2, '0')}/{String(total).padStart(2, '0')}</span>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* Un texte qui se tape, lettre à lettre. */
+function useFrappe(texte, duree) {
+  const [n, setN] = useState(0);
+  useEffect(() => {
+    setN(0);
+    const t = String(texte || '');
+    if (!t) return;
+    const pas = Math.max(14, (duree * 0.72) / t.length);
+    const id = setInterval(() => setN((x) => (x >= t.length ? (clearInterval(id), x) : x + 1)), pas);
+    return () => clearInterval(id);
+  }, [texte, duree]);
+  return String(texte || '').slice(0, n);
+}
+
+function Indice({ texte, duree, rang, minutes }) {
+  const vu = useFrappe(texte, duree);
+  return (
+    <div className="sc-indice">
+      <div className="sc-indice-t">
+        <span>INDICE {String(rang || 1).padStart(2, '0')}</span>
+        {minutes != null && <span>DEMANDÉ À {minutes} MIN</span>}
+      </div>
+      <p>{vu}<i /></p>
+    </div>
+  );
+}
+
+function Parchemin({ texte, eti = 'L’ENCRE REVIENT' }) {
+  const l = String(texte || '').split('\n');
+  return (
+    <div className="sc-parchemin">
+      <div>
+        <span className="eti">{eti}</span>
+        {l.map((t, i) => (
+          <span className="ligne" key={i} style={{ animationDelay: `${0.3 + i * 0.34}s` }}>
+            {t || ' '}
+          </span>
+        ))}
       </div>
     </div>
   );
 }
 
 function Anomalie({ texte }) {
-  return (
-    <div className="sc-anomalie">
-      <small>Ne relève d'aucun dossier</small>
-      <p>{texte}</p>
-    </div>
-  );
+  return <Parchemin texte={texte} eti="NE RELÈVE D’AUCUN DOSSIER" />;
 }
 
 function Descellement({ n = 7 }) {
   return (
     <div className="sc-descellement">
-      {Array.from({ length: n }, (_, i) => (
-        <span key={i} style={{ animationDelay: `${i * 0.18}s` }} />
-      ))}
-      <p>Les scellés sont levés</p>
+      <div className="sc-desc-g">
+        {Array.from({ length: n }, (_, i) => (
+          <span key={i} style={{ animation: `fend .8s ${i * 0.18}s cubic-bezier(.2,.85,.25,1) both` }} />
+        ))}
+      </div>
+      <p className="sc-desc-t">Plus rien ne tient fermé.</p>
+      <p className="sc-desc-s">{n} SCELLÉS LEVÉS</p>
+    </div>
+  );
+}
+
+function Ouverture({ date, titre }) {
+  return (
+    <div className="sc-ouverture">
+      {date && <small>{date}</small>}
+      <strong>{titre}</strong>
     </div>
   );
 }
 
 function Machine({ texte, duree }) {
-  const [n, setN] = useState(0);
-  useEffect(() => {
-    const t = String(texte || '');
-    if (!t) return;
-    const pas = Math.max(12, duree / t.length);
-    const id = setInterval(() => setN((x) => (x >= t.length ? (clearInterval(id), x) : x + 1)), pas);
-    return () => clearInterval(id);
-  }, [texte, duree]);
-  return <pre className="sc-machine">{String(texte || '').slice(0, n)}<i /></pre>;
+  const vu = useFrappe(texte, duree);
+  return <pre className="sc-machine">{vu}</pre>;
 }
 
 const RENDUS = {
-  demarrage: (p) => <Machine texte={p.titre || 'FONDS 47'} duree={p.duree * 0.6} />,
-  ouverture_dossier: (p) => (
-    <div className="sc-ouverture"><small>{p.date}</small><strong>{p.titre}</strong></div>
-  ),
-  tampon_ok: () => <Tampon />,
-  tampon_ko: () => <Tampon ko />,
-  sceau: (p) => <Sceau n={p.rang} />,
-  chrono: (p) => <Chrono minutes={p.minutes} ref={p.chronoRef} />,
-  recompense: (p) => <Recompense recompense={p.recompense} />,
+  demarrage: (p) => <Machine texte={p.titre} duree={p.duree} />,
+  ouverture_dossier: (p) => <Ouverture date={p.date} titre={p.titre} />,
+  /* `tampon` et pas `texte` : le contexte porte déjà un `texte` (l'indice,
+     le parchemin) et le tampon n'a rien à voir avec lui. */
+  tampon_ok: (p) => <Tampon texte={p.tampon} />,
+  tampon_ko: (p) => <Tampon texte={p.tampon} ko />,
+  sceau: (p) => <Sceau n={p.rang} total={p.total} />,
+  chrono: (p) => <Chrono minutes={p.minutes} reference={p.chronoRef} />,
+  recompense: (p) => <Recompense recompense={p.recompense} rang={p.rang} total={p.total} />,
   anomalie: (p) => <Anomalie texte={p.texte} />,
-  indice: (p) => <Machine texte={p.texte} duree={p.duree} />,
-  parchemin: (p) => <Machine texte={p.texte} duree={p.duree} />,
+  indice: (p) => <Indice texte={p.texte} duree={p.duree} rang={p.rang} minutes={p.minutes} />,
+  parchemin: (p) => <Parchemin texte={p.texte} />,
   descellement: (p) => <Descellement n={p.total} />,
   assemblage_ok: () => <div className="sc-balayage" />,
-  verdict_acte: (p) => <Machine texte={p.texte} duree={p.duree} />,
+  verdict_acte: (p) => <Parchemin texte={p.texte} eti="LE VERDICT" />,
 };
 
 /* ---- Le lecteur ---- */
@@ -134,9 +214,16 @@ export function Lecteur({ sequence, contexte, reglages, onFini }) {
     if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) onFini?.([]);
   }, [reglages, onFini]);
 
-  if (!scene) return null;
-  const rendu = RENDUS[scene.cle];
-  if (!rendu) return null;
+  const rendu = scene ? RENDUS[scene.cle] : null;
+  const sortie = rendu ? rendu({ ...contexte, duree: scene.duree, ...scene.options }) : null;
+
+  /* Une scène qui n'a rien à montrer — une récompense pas encore écrite,
+     par exemple — ne doit pas manger deux secondes d'écran noir. */
+  useEffect(() => {
+    if (scene && !sortie) suivant();
+  }, [scene, sortie, suivant]);
+
+  if (!scene || !sortie) return null;
 
   return (
     <div
@@ -144,11 +231,9 @@ export function Lecteur({ sequence, contexte, reglages, onFini }) {
       role="presentation"
       onClick={reglages?.sautToujours === false ? undefined : suivant}
     >
-      <div className="sc-scene" key={scene.cle} style={{ '--d': `${scene.duree}ms` }}>
-        {rendu({ ...contexte, duree: scene.duree, ...scene.options })}
-      </div>
+      {sortie}
       {reglages?.sautToujours !== false && (
-        <button className="sc-saut" onClick={suivant}>passer</button>
+        <span className="sc-saut">TOUCHER POUR CONTINUER</span>
       )}
     </div>
   );

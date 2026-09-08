@@ -49,6 +49,7 @@ export default function Console() {
     ['dossiers', 'Les dossiers'],
     ['programme', 'Le programme'],
     ['quand', 'Quand ça commence'],
+    ['habillage', "L'habillage"],
     ['anim', 'Les animations'],
     ['medias', 'Les médias'],
     ['regles', 'Les règles'],
@@ -89,6 +90,7 @@ export default function Console() {
       )}
       {onglet === 'programme' && <Programme d={d} recharger={charger} flash={flash} />}
       {onglet === 'quand' && <Quand d={d} recharger={charger} flash={flash} />}
+      {onglet === 'habillage' && <Habillage d={d} recharger={charger} flash={flash} />}
       {onglet === 'anim' && <Animations d={d} recharger={charger} flash={flash} />}
       {onglet === 'medias' && <Medias d={d} recharger={charger} flash={flash} />}
       {onglet === 'regles' && <Regles d={d} recharger={charger} flash={flash} />}
@@ -402,6 +404,78 @@ function Programme({ d, recharger, flash }) {
       <button className="adm-primaire" onClick={async () => {
         await poster({ action: 'config', config: { programme: prog } }); recharger(); flash('Programme enregistré');
       }}>Enregistrer le programme</button>
+    </section>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+
+/* L'habillage : la direction visuelle et les écrans qui entourent le jeu.
+   Tout ce qui s'y saisit part en base ; rien n'est écrit dans le code. */
+function Habillage({ d, recharger, flash }) {
+  const [c, setC] = useState(d.config);
+  const maj = (p) => setC((x) => ({ ...x, ...p }));
+  const majIntro = (p) => setC((x) => ({ ...x, intro: { ...(x.intro || {}), ...p } }));
+  const majAttente = (p) => setC((x) => ({ ...x, attente: { ...(x.attente || {}), ...p } }));
+
+  return (
+    <section>
+      <h3>La direction</h3>
+      <p className="adm-aide">
+        Deux habillages, le même jeu. Ouvre le jeu sur ton téléphone après avoir
+        enregistré : le changement est immédiat, tu peux comparer les deux.
+      </p>
+      <div className="adm-grille">
+        <label>Habillage
+          <select value={c.skin || 'grimoire'} onChange={(e) => maj({ skin: e.target.value })}>
+            <option value="grimoire">Le Grimoire — nuit, or, cire, papier crème</option>
+            <option value="chambre">La Chambre 47 — vert sombre, machine à écrire</option>
+          </select>
+        </label>
+        <label>Sur-titre <em>— la ligne en petites capitales</em>
+          <input value={c.surtitre || ''} onChange={(e) => maj({ surtitre: e.target.value })} />
+        </label>
+        <label>Cote <em>— le nombre dans le coin du bandeau</em>
+          <input value={c.cote || ''} onChange={(e) => maj({ cote: e.target.value })} />
+        </label>
+      </div>
+      <label className="adm-case">
+        <input type="checkbox" checked={c.amorcage !== false}
+          onChange={(e) => maj({ amorcage: e.target.checked })} />
+        Écran d'accès au premier chargement
+      </label>
+
+      <h3>L'introduction <em>— titre vide : pas d'écran d'introduction</em></h3>
+      <div className="adm-grille">
+        <label>Titre
+          <input value={c.intro?.titre || ''} onChange={(e) => majIntro({ titre: e.target.value })} />
+        </label>
+        <label>Bouton
+          <input value={c.intro?.bouton || ''} onChange={(e) => majIntro({ bouton: e.target.value })} />
+        </label>
+      </div>
+      <label className="adm-bloc">Le texte <em>— un paragraphe par ligne</em>
+        <textarea rows={7} value={c.intro?.texte || ''}
+          onChange={(e) => majIntro({ texte: e.target.value })} />
+      </label>
+
+      <h3>L'écran d'attente <em>— avant le premier jour</em></h3>
+      <label className="adm-bloc">Titre
+        <input value={c.attente?.titre || ''} onChange={(e) => majAttente({ titre: e.target.value })} />
+      </label>
+      <label className="adm-bloc">Le texte sous le titre
+        <textarea rows={3} value={c.attente?.texte || ''}
+          onChange={(e) => majAttente({ texte: e.target.value })} />
+      </label>
+
+      <h3>Le fonds</h3>
+      <label className="adm-bloc">La ligne sous la grille des 47
+        <input value={c.piedFonds || ''} onChange={(e) => maj({ piedFonds: e.target.value })} />
+      </label>
+
+      <button className="adm-primaire" onClick={async () => {
+        await poster({ action: 'config', config: c }); recharger(); flash('Habillage enregistré');
+      }}>Enregistrer</button>
     </section>
   );
 }

@@ -9,21 +9,19 @@ import { useState } from 'react';
 
 const lignes = (t) => String(t || '').split('\n');
 
-function Enonce({ texte }) {
+/* ---- Les briques communes ---- */
+
+function Paras({ texte }) {
   if (!texte) return null;
-  return (
-    <div className="ma-enonce">
-      {lignes(texte).map((l, i) =>
-        l.trim() === '' ? <br key={i} /> : <p key={i}>{l}</p>)}
-    </div>
-  );
+  return lignes(texte).map((l, i) =>
+    l.trim() === '' ? <br key={i} /> : <p className="f-para" key={i}>{l}</p>);
 }
 
 function Pieces({ noms }) {
   const liste = Array.isArray(noms) ? noms : noms ? [noms] : [];
   if (!liste.length) return null;
   return (
-    <ul className="ma-pieces">
+    <ul className="pieces">
       {liste.map((n) => {
         const image = /\.(png|jpe?g|gif|webp|avif)$/i.test(n);
         return (
@@ -32,7 +30,7 @@ function Pieces({ noms }) {
               ? <a href={`/api/media/${encodeURIComponent(n)}`} target="_blank" rel="noreferrer">
                   <img src={`/api/media/${encodeURIComponent(n)}`} alt={n} loading="lazy" />
                 </a>
-              : <a className="ma-fichier" href={`/api/media/${encodeURIComponent(n)}`} download>{n}</a>}
+              : <a className="piece-f" href={`/api/media/${encodeURIComponent(n)}`} download>{n}</a>}
           </li>
         );
       })}
@@ -40,16 +38,30 @@ function Pieces({ noms }) {
   );
 }
 
-function Champ({ placeholder, onEnvoyer, bloque, restant, libelle = 'Déposer' }) {
+/* Le dépôt : un champ, un bouton, une ligne de verdict. */
+function Depot({ libelleChamp = 'VOTRE DÉPÔT', placeholder, bouton = 'Déposer',
+                 onEnvoyer, bloque, verdict }) {
   const [v, setV] = useState('');
+  const envoyer = async () => {
+    if (!v.trim() || bloque) return;
+    const garde = v;
+    setV('');
+    await onEnvoyer(garde);
+  };
   return (
-    <form className="ma-champ" onSubmit={(e) => { e.preventDefault(); if (v.trim()) onEnvoyer(v); }}>
-      <input value={v} onChange={(e) => setV(e.target.value)}
-        placeholder={placeholder || 'Votre réponse'} disabled={bloque} autoComplete="off" />
-      <button disabled={bloque || !v.trim()}>{libelle}</button>
-      {restant != null && restant < 3 && !bloque &&
-        <small className="ma-restant">{restant} tentative{restant > 1 ? 's' : ''} avant blocage</small>}
-    </form>
+    <div className="depot">
+      <label>{libelleChamp}</label>
+      <div className="depot-l">
+        <input className="champ" value={v} onChange={(e) => setV(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); envoyer(); } }}
+          placeholder={placeholder || ''} disabled={bloque} autoComplete="off"
+          aria-label={libelleChamp} />
+        <button type="button" className="deposer" onClick={envoyer} disabled={bloque || !v.trim()}>
+          {bouton}
+        </button>
+      </div>
+      <p className="verdict">{verdict || ''}</p>
+    </div>
   );
 }
 
@@ -57,124 +69,105 @@ function Champ({ placeholder, onEnvoyer, bloque, restant, libelle = 'Déposer' }
 
 function Note({ m }) {
   return (
-    <article className={`ma-note ${m.payload.ton || 'neutre'}`}>
-      <Enonce texte={m.payload.texte} />
-      {m.payload.signature && <p className="ma-signature">{m.payload.signature}</p>}
-    </article>
-  );
-}
-
-function Saisie({ m, onRepondre }) {
-  return (
     <>
-      <Enonce texte={m.payload.enonce} />
-      <Pieces noms={m.payload.medias} />
-      {m.payload.consigne && <p className="ma-consigne">{m.payload.consigne}</p>}
-      {!m.resolu && <Champ placeholder={m.payload.placeholder} onEnvoyer={onRepondre}
-        bloque={!!m.bloqueJusqu} restant={m.tentativesRestantes} />}
+      <Paras texte={m.payload.texte} />
+      {m.payload.signature && (
+        <p className="f-para" style={{ textAlign: 'right', fontStyle: 'italic' }}>{m.payload.signature}</p>
+      )}
     </>
   );
 }
 
-function Grille({ m, onRepondre }) {
+function Saisie({ m }) {
+  return (
+    <>
+      <Paras texte={m.payload.enonce} />
+      <Pieces noms={m.payload.medias} />
+    </>
+  );
+}
+
+function Grille({ m }) {
   const cats = m.payload.categories || [];
   return (
     <>
-      <Enonce texte={m.payload.enonce} />
+      <Paras texte={m.payload.enonce} />
       {!!cats.length && (
-        <div className="ma-grille-cats">
-          {cats.map((c, i) => <span key={i}>{c}</span>)}
-        </div>
+        <div className="cats">{cats.map((c, i) => <span key={i}>{c}</span>)}</div>
       )}
       {!!(m.payload.contraintes || []).length && (
-        <ol className="ma-contraintes">
+        <ol className="contraintes">
           {m.payload.contraintes.map((c, i) => <li key={i}>{c}</li>)}
         </ol>
       )}
-      {m.payload.consigne && <p className="ma-consigne">{m.payload.consigne}</p>}
-      {!m.resolu && <Champ onEnvoyer={onRepondre} bloque={!!m.bloqueJusqu} restant={m.tentativesRestantes} />}
     </>
   );
 }
 
-function Imposteur({ m, onRepondre }) {
-  const [sel, setSel] = useState(null);
+function Imposteur({ m, sel, setSel }) {
   const decl = m.payload.declarations || [];
   return (
     <>
-      <Enonce texte={m.payload.enonce} />
-      <ul className="ma-declarations">
+      <Paras texte={m.payload.enonce} />
+      <ul className="decls">
         {decl.map((t, i) => (
           <li key={i}>
             <button type="button" className={sel === i ? 'on' : ''}
               onClick={() => setSel(i)} disabled={m.resolu}>
-              <span className="ma-num">{i + 1}</span>{t}
+              <span className="n">{String(i + 1).padStart(2, '0')}</span>
+              <span>{t}</span>
             </button>
           </li>
         ))}
       </ul>
-      {m.payload.consigne && <p className="ma-consigne">{m.payload.consigne}</p>}
-      {!m.resolu && (
-        <div className="ma-champ">
-          <button disabled={sel == null || !!m.bloqueJusqu}
-            onClick={() => onRepondre(decl[sel])}>Désigner</button>
-        </div>
-      )}
     </>
   );
 }
 
-function Serrure({ m, onPasse, onRepondre }) {
+function Serrure({ m, onPasse, verdict }) {
   if (!m.ouverte) {
     return (
       <>
-        <Enonce texte={m.payload.invite} />
-        <Champ placeholder="…" onEnvoyer={onPasse} libelle="Demander" />
+        <Paras texte={m.payload.invite} />
+        <div className="serrure">
+          <div className="serrure-o">§</div>
+          <p>{m.payload.fermeture || 'LA PAGE NE S’OUVRE QU’À LA PHRASE JUSTE'}</p>
+        </div>
+        <Depot libelleChamp="LA PHRASE" bouton="Demander" onEnvoyer={onPasse} verdict={verdict} />
       </>
     );
   }
-  return (
-    <>
-      <pre className="ma-revele">{m.payload.revele}</pre>
-      {m.payload.consigne && <p className="ma-consigne">{m.payload.consigne}</p>}
-      {!m.resolu && <Champ onEnvoyer={onRepondre} bloque={!!m.bloqueJusqu} restant={m.tentativesRestantes} />}
-    </>
-  );
+  return <pre className="revele">{m.payload.revele}</pre>;
 }
 
-function Assemblage({ m, onRepondre }) {
+function Assemblage({ m, ordre, setOrdre, sel, setSel, fait }) {
   const c = m.payload.colonnes || 4, l = m.payload.lignes || 2;
-  const [ordre, setOrdre] = useState(() =>
-    [...Array(c * l).keys()].sort(() => Math.random() - 0.5));
-  const [sel, setSel] = useState(null);
-  const fait = ordre.every((v, i) => v === i);
-
   const clic = (i) => {
+    if (m.resolu) return;
     if (sel == null) return setSel(i);
     const n = [...ordre];
     [n[sel], n[i]] = [n[i], n[sel]];
     setOrdre(n); setSel(null);
   };
-
+  const media = m.payload.media || '';
   return (
     <>
-      <Enonce texte={m.payload.enonce} />
-      <div className="ma-taquin" style={{ '--c': c, '--l': l }}>
+      <Paras texte={m.payload.enonce} />
+      <div className={`taquin ${fait ? 'fini' : ''}`}
+        style={{ gridTemplateColumns: `repeat(${c}, 1fr)` }}>
         {ordre.map((v, i) => (
           <button key={i} type="button" className={sel === i ? 'on' : ''} onClick={() => clic(i)}
+            aria-label={`fragment ${i + 1}`}
             style={{
-              backgroundImage: `url(/api/media/${encodeURIComponent(m.payload.media || '')})`,
+              backgroundImage: media ? `url(/api/media/${encodeURIComponent(media)})` : 'none',
               backgroundSize: `${c * 100}% ${l * 100}%`,
               backgroundPosition: `${(v % c) * (100 / (c - 1 || 1))}% ${Math.floor(v / c) * (100 / (l - 1 || 1))}%`,
             }} />
         ))}
       </div>
-      {fait && !m.resolu && (
-        <>
-          {m.payload.consigne && <p className="ma-consigne">{m.payload.consigne}</p>}
-          <Champ onEnvoyer={onRepondre} bloque={!!m.bloqueJusqu} restant={m.tentativesRestantes} />
-        </>
-      )}
+      <p className="taquin-etat">
+        {fait ? 'LA PIÈCE EST RECONSTITUÉE' : 'TOUCHEZ DEUX FRAGMENTS POUR LES ÉCHANGER'}
+      </p>
     </>
   );
 }
@@ -182,58 +175,160 @@ function Assemblage({ m, onRepondre }) {
 const PAR_TYPE = {
   note: Note,
   saisie: Saisie,
-  fichier: Saisie,     // même rendu : énoncé + pièces + champ
+  fichier: Saisie,     // même rendu : énoncé + pièces
   grille: Grille,
   imposteur: Imposteur,
   serrure: Serrure,
   assemblage: Assemblage,
 };
 
-export function Manche({ m, onRepondre, onPasse, onAnomalie }) {
+/* ------------------------------------------------------------------ */
+
+export function Manche({ m, onRepondre, onPasse, onAnomalie, onIndice }) {
+  const [anomalie, setAnomalie] = useState('');
+  const [verdict, setVerdict] = useState('');
+  const [verdictPasse, setVerdictPasse] = useState('');
+  const [sel, setSel] = useState(null);
+  const c = m?.payload?.colonnes || 4, l = m?.payload?.lignes || 2;
+  const [ordre, setOrdre] = useState(() =>
+    [...Array(c * l).keys()].sort(() => Math.random() - 0.5));
+
   if (!m) return null;
   const Rendu = PAR_TYPE[m.type];
-  const [anomalie, setAnomalie] = useState('');
+  const fait = ordre.every((v, i) => v === i);
+
+  /* Le champ n'apparaît que quand la manche attend une réponse. */
+  const aChamp = m.aResoudre && !m.resolu
+    && !(m.type === 'serrure' && !m.ouverte)
+    && !(m.type === 'assemblage' && !fait)
+    && m.type !== 'imposteur';
+
+  const deposer = async (saisie) => {
+    const r = await onRepondre(saisie);
+    if (r?.ok) setVerdict('');
+    else if (r?.bloqueJusqu) setVerdict('Trop de tentatives. Le greffe ferme un moment.');
+    else setVerdict(r?.restant != null
+      ? `Ce n’est pas ça. ${r.restant} tentative${r.restant > 1 ? 's' : ''} avant blocage.`
+      : 'Ce n’est pas ça.');
+  };
+
+  const demanderPasse = async (saisie) => {
+    const r = await onPasse(saisie);
+    setVerdictPasse(r?.ok ? '' : 'La page reste fermée.');
+  };
 
   return (
-    <section className="ma">
-      <header className="ma-tete">
-        <small>{m.genre}</small>
-        <h2>{m.titre}</h2>
-        {m.chronoRef != null && (
-          <p className="ma-ref">L'Archiviste : {m.chronoRef} min
-            {m.minutes != null && <span> · vous : {m.minutes} min</span>}</p>
+    <article className="feuille">
+      <div className="pli pli1" aria-hidden="true" />
+      <div className="pli pli2" aria-hidden="true" />
+      <div className="pli pli3" aria-hidden="true" />
+
+      <div className="dedans">
+        <div className="f-tete">
+          <small className="f-genre">{m.genre}</small>
+          {/* Le temps de l'Archiviste ne se révèle qu'une fois le dépôt fait :
+              c'est la promesse de l'introduction, elle se tient ici. */}
+          <small className="f-chrono">
+            {m.resolu && m.chronoRef != null
+              ? `L’ARCHIVISTE · ${m.chronoRef} MIN${m.minutes != null ? ` — VOUS · ${m.minutes} MIN` : ''}`
+              : m.minutes != null ? `VOUS · ${m.minutes} MIN` : ''}
+          </small>
+        </div>
+        <h2 className="f-titre">{m.titre}</h2>
+
+        {Rendu
+          ? <Rendu m={m} onPasse={demanderPasse} verdict={verdictPasse}
+              sel={sel} setSel={setSel} ordre={ordre} setOrdre={setOrdre} fait={fait} />
+          : <p className="f-para">Type de manche inconnu.</p>}
+
+        {m.payload.consigne && !m.resolu && (aChamp || m.type === 'imposteur') && (
+          <p className="f-consigne">{m.payload.consigne}</p>
         )}
-      </header>
 
-      {Rendu
-        ? <Rendu m={m} onRepondre={onRepondre} onPasse={onPasse} />
-        : <p className="ma-consigne">Type de manche inconnu.</p>}
+        {m.type === 'imposteur' && !m.resolu && (
+          <div className="depot">
+            <label>VOTRE DÉSIGNATION</label>
+            <div className="depot-l">
+              <button type="button" className="deposer" disabled={sel == null || !!m.bloqueJusqu}
+                onClick={() => deposer((m.payload.declarations || [])[sel])}>Désigner</button>
+            </div>
+            <p className="verdict">{verdict}</p>
+          </div>
+        )}
 
-      {m.bloqueJusqu && (
-        <p className="ma-bloque">
-          Trop de tentatives. Rouvrez dans {Math.max(1, Math.ceil((m.bloqueJusqu - Date.now()) / 60000))} min.
-        </p>
+        {aChamp && (
+          <Depot placeholder={m.payload.placeholder} onEnvoyer={deposer}
+            bloque={!!m.bloqueJusqu} verdict={verdict} />
+        )}
+
+        {m.bloqueJusqu && (
+          <p className="verdict">
+            Rouvrez dans {Math.max(1, Math.ceil((m.bloqueJusqu - Date.now()) / 60000))} min.
+          </p>
+        )}
+
+        {m.resolu && <div className="clos">DOSSIER CLOS</div>}
+
+        <Indices m={m} onDemander={onIndice} />
+
+        {/* La seconde couche : aucune consigne ne la signale. */}
+        <form className="anomalie" onSubmit={(e) => {
+          e.preventDefault();
+          if (anomalie.trim()) { onAnomalie(anomalie); setAnomalie(''); }
+        }}>
+          <input value={anomalie} onChange={(e) => setAnomalie(e.target.value)}
+            placeholder="Signaler autre chose" aria-label="Signaler autre chose" />
+        </form>
+      </div>
+    </article>
+  );
+}
+
+/* Les indices ne tombent pas : il les demande.
+   Le palier rend le bouton actif ; tant qu'il n'a pas cliqué, le texte
+   n'a jamais quitté le serveur. */
+function Indices({ m, onDemander }) {
+  const [refus, setRefus] = useState(null);
+  const pris = m.indices || [];
+  const reste = (m.indicesTotal || 0) - pris.length;
+
+  if (!m.indicesTotal) return null;
+
+  const demander = async () => {
+    const r = await onDemander();
+    setRefus(r?.ok ? null : r);
+  };
+
+  return (
+    <section className="indices">
+      {pris.map((t, i) => (
+        <div className="item" key={i}>
+          <span>{String(i + 1).padStart(2, '0')}</span>
+          <span>{t}</span>
+        </div>
+      ))}
+
+      {!m.resolu && reste > 0 && (
+        <div className="indices-pied">
+          <button type="button" className="demander"
+            disabled={!m.peutDemander} onClick={demander}>
+            {pris.length ? 'ENCORE UN INDICE' : 'DEMANDER UN INDICE'}
+          </button>
+          <small>
+            {refus?.pasEncore && refus.restant != null
+              ? `Encore ${refus.restant} min.`
+              : m.peutDemander
+                ? `${m.indicesDisponibles - pris.length} disponible${m.indicesDisponibles - pris.length > 1 ? 's' : ''} · ${reste} en tout`
+                : m.prochainIndice != null
+                  ? `Le prochain s’ouvre à ${m.prochainIndice} min${m.minutes != null ? ` — ${m.minutes} écoulées` : ''}`
+                  : `${reste} indice${reste > 1 ? 's' : ''} en réserve`}
+          </small>
+        </div>
       )}
 
-      {m.resolu && <p className="ma-resolu">Dossier clos.</p>}
-
-      {!!(m.indices || []).length && (
-        <details className="ma-indices">
-          <summary>{m.indices.length} indice{m.indices.length > 1 ? 's' : ''} disponible{m.indices.length > 1 ? 's' : ''}</summary>
-          <ol>{m.indices.map((t, i) => <li key={i}>{t}</li>)}</ol>
-        </details>
+      {!m.resolu && reste === 0 && pris.length > 0 && (
+        <div className="indices-pied"><small>Plus rien à demander. À vous.</small></div>
       )}
-      {!m.resolu && m.prochainIndice != null && (
-        <p className="ma-prochain">
-          Prochain indice à {m.prochainIndice} min d'ouverture{m.minutes != null ? ` (${m.minutes} écoulées)` : ''}.
-        </p>
-      )}
-
-      {/* La seconde couche : aucune consigne ne la signale. */}
-      <form className="ma-anomalie" onSubmit={(e) => { e.preventDefault(); if (anomalie.trim()) { onAnomalie(anomalie); setAnomalie(''); } }}>
-        <input value={anomalie} onChange={(e) => setAnomalie(e.target.value)}
-          placeholder="Signaler autre chose" aria-label="Signaler autre chose" />
-      </form>
     </section>
   );
 }
