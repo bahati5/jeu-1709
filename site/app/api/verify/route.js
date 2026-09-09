@@ -6,7 +6,7 @@
 import { introuvable, json } from '@/lib/acces';
 import { etatTemps, maintenant, dossierDuJour, dossiersOuverts, minutesDepuis } from '@/lib/temps';
 import { lireConfig, lireEtat, lireDossier, muterEtat } from '@/lib/donnees';
-import { verifier, verifierPasse, normaliser } from '@/lib/reponses';
+import { verifierDossier, verifierPasse } from '@/lib/reponses';
 
 export const dynamic = 'force-dynamic';
 
@@ -67,7 +67,8 @@ export async function POST(req) {
 
   if (etat.resolus?.[slug]) return json({ ok: true, deja: true });
 
-  const ok = verifier(d.solution, corps.saisie);
+  /* Une seule règle, partagée avec les tests : voir lib/reponses.js. */
+  const ok = verifierDossier(d, corps.saisie);
 
   if (!ok) {
     const n = bloc.n + 1;

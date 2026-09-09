@@ -50,3 +50,25 @@ export function verifierFermeture(payload, saisie) {
   if (!attendu) return false;
   return normaliser(attendu) === normaliser(saisie);
 }
+
+/* Ce que le serveur accepte pour UN dossier, quel que soit son type.
+ *
+ * Elle existe parce que le client n'envoie pas toujours ce qu'on croit :
+ * sur une manche « imposteur » il ne tape pas un nom, il DÉSIGNE une
+ * déposition, et c'est le texte entier de cette déposition qui part.
+ * Aucune des réponses écrites dans /admin ne lui ressemble.
+ *
+ * Tout ce qui vérifie une réponse passe par ici — le serveur comme les
+ * tests — pour qu'un écart entre les deux ne puisse plus exister.
+ */
+export function verifierDossier(dossier, saisie) {
+  if (!dossier) return false;
+  if (verifier(dossier.solution, saisie)) return true;
+
+  if (dossier.type === 'imposteur' && Number.isInteger(dossier.solution?.imposteur)) {
+    const decl = dossier.payload?.declarations || [];
+    const vise = decl[dossier.solution.imposteur];
+    if (vise && normaliser(vise) === normaliser(saisie)) return true;
+  }
+  return false;
+}

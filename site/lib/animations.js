@@ -83,6 +83,7 @@ export const estScene = (c) => CLES_SCENES.includes(c);
 export const ANIM_DEFAUT = {
   actives: true,
   sautToujours: true,       // un clic saute la scène, toujours
+  attendreLeJoueur: true,   // la scène reste tant qu'il ne l'a pas fermée
   courteApres: 2,           // à partir de la Nième fois, version raccourcie
   facteurCourte: 0.4,       // ce que « raccourcie » veut dire
   respecterReducedMotion: true,

@@ -280,6 +280,15 @@ body{margin:0;background:#08070a;-webkit-font-smoothing:antialiased}
    ============================================================ */
 .sc-voile{position:fixed;inset:0;z-index:70;display:grid;place-items:center;background:rgba(5,4,8,.93);
   backdrop-filter:blur(5px);padding:26px;text-align:center;cursor:pointer;animation:fondu .3s}
+.sc-fermer{position:fixed;top:14px;right:14px;z-index:2;width:46px;height:46px;
+  display:grid;place-items:center;font:300 26px/1 var(--fb),Georgia,serif;
+  color:rgba(255,255,255,.62);background:rgba(255,255,255,.06);
+  border:1px solid rgba(255,255,255,.22);border-radius:50%;cursor:pointer;padding:0}
+.sc-fermer:hover{color:#fff;background:rgba(255,255,255,.14)}
+.sc-points{position:fixed;left:0;right:0;bottom:60px;display:flex;gap:7px;justify-content:center}
+.sc-points i{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.24);
+  transition:background .3s, transform .3s}
+.sc-points i.on{background:var(--gold);transform:scale(1.35)}
 .sc-saut{position:fixed;right:16px;bottom:16px;font-family:var(--fm);font-size:9.5px;letter-spacing:.16em;
   color:rgba(255,255,255,.4);border:1px solid rgba(255,255,255,.22);background:none;padding:9px 13px;
   cursor:pointer;animation:respire 2.6s ease-in-out infinite}

@@ -214,12 +214,18 @@ export function Lecteur({ sequence, contexte, reglages, onFini }) {
     setI((x) => x + 1);
   }, []);
 
+  /* Par défaut la scène ne s'en va pas toute seule : il la regarde le temps
+     qu'il veut et la ferme d'une croix. C'est réglable depuis /admin —
+     décocher « Attendre que le joueur ferme » rend la minuterie. */
+  const attend = reglages?.attendreLeJoueur !== false;
+
   useEffect(() => {
     if (!sequence?.length) { onFini?.(); return; }
     if (i >= sequence.length) { onFini?.(sequence.map((s) => s.cle)); return; }
+    if (attend) return;
     minuteur.current = setTimeout(forcer, sequence[i].duree);
     return () => clearTimeout(minuteur.current);
-  }, [i, sequence, forcer, onFini]);
+  }, [i, sequence, forcer, onFini, attend]);
 
   /* Respecter la préférence système, si l'admin l'a demandé. */
   useEffect(() => {
@@ -245,9 +251,21 @@ export function Lecteur({ sequence, contexte, reglages, onFini }) {
       role="presentation"
       onClick={reglages?.sautToujours === false ? undefined : suivant}
     >
+      <button className="sc-fermer" type="button" aria-label="Fermer"
+        onClick={(e) => { e.stopPropagation(); suivant(); }}>×</button>
+
       {sortie}
+
+      {sequence.length > 1 && (
+        <div className="sc-points" aria-hidden="true">
+          {sequence.map((_, k) => <i key={k} className={k === i ? 'on' : ''} />)}
+        </div>
+      )}
+
       {reglages?.sautToujours !== false && (
-        <span className="sc-saut">TOUCHER POUR CONTINUER</span>
+        <span className="sc-saut">
+          {i + 1 < sequence.length ? 'TOUCHER POUR LA SUITE' : 'TOUCHER POUR FERMER'}
+        </span>
       )}
     </div>
   );

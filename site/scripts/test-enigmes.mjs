@@ -22,7 +22,7 @@ try {
 } catch {}
 
 const { listerDossiers } = await import('../lib/donnees.js');
-const { verifier } = await import('../lib/reponses.js');
+const { verifier, verifierDossier } = await import('../lib/reponses.js');
 
 let ko = 0;
 const dit = (nom, vrai, detail = '') => {
@@ -172,6 +172,49 @@ for (const d of Object.values(dossiers)) {
 }
 const vides = Object.values(dossiers).filter((d) => !d.recompense?.nom);
 if (vides.length) console.log(`  \x1b[33m⚠\x1b[0m ${vides.length} récompense(s) encore vides : ${vides.map((d) => d.slug).join(', ')}`);
+
+/* ------------------------------------------------------------------ */
+/*  Ce que le CLIENT envoie vraiment                                   */
+/*                                                                     */
+/*  Le jour 5 a été rejeté en conditions réelles : sur une manche       */
+/*  « imposteur », le joueur désigne une déposition, et le client       */
+/*  envoie le texte ENTIER de cette déposition — pas le nom écrit dans  */
+/*  les réponses acceptées. Le test ci-dessous rejoue ce geste-là.      */
+/* ------------------------------------------------------------------ */
+
+console.log('\nCE QUE LE CLIENT ENVOIE\n');
+
+for (const d of await listerDossiers()) {
+  if (d.type !== 'imposteur') continue;
+  const decl = d.payload?.declarations || [];
+  const idx = d.solution?.imposteur;
+
+  if (!Number.isInteger(idx) || !decl[idx]) {
+    console.log(`  \x1b[31m✗\x1b[0m ${d.slug} : pas d'index d'imposteur exploitable`);
+    ko++;
+    continue;
+  }
+
+  /* On appelle la MÊME fonction que /api/verify, pas une copie. */
+  const envoye = decl[idx];
+  const acceptee = verifierDossier(d, envoye);
+
+  if (acceptee) {
+    console.log(`  \x1b[32m✓\x1b[0m ${d.slug} : la désignation de « ${envoye.slice(0, 18)}… » est acceptée`);
+  } else {
+    console.log(`  \x1b[31m✗\x1b[0m ${d.slug} : désigner l'imposteur donne REJETÉ`);
+    ko++;
+  }
+
+  /* Et désigner quelqu'un d'autre doit bien être refusé. */
+  const autre = decl.find((_, k) => k !== idx);
+  if (autre && verifierDossier(d, autre)) {
+    console.log(`  \x1b[31m✗\x1b[0m ${d.slug} : une mauvaise désignation passe aussi`);
+    ko++;
+  } else {
+    console.log(`  \x1b[32m✓\x1b[0m ${d.slug} : une mauvaise désignation est refusée`);
+  }
+}
 
 console.log(ko
   ? `\n\x1b[31m${ko} problème(s).\x1b[0m Une énigme à deux solutions le fera s'acharner sur une réponse juste.\n`

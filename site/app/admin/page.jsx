@@ -772,6 +772,10 @@ function Animations({ d, recharger, flash }) {
           <input type="checkbox" checked={g.sautToujours !== false} onChange={(e) => setG({ ...g, sautToujours: e.target.checked })} />
           Toujours sautables d'un clic
         </label>
+        <label className="adm-case">
+          <input type="checkbox" checked={g.attendreLeJoueur !== false} onChange={(e) => setG({ ...g, attendreLeJoueur: e.target.checked })} />
+          Attendre que le joueur ferme <em>— la scène ne part pas toute seule</em>
+        </label>
         <label>Version courte à partir de la Nième fois
           <input type="number" value={g.courteApres ?? 2} onChange={(e) => setG({ ...g, courteApres: Number(e.target.value) })} />
         </label>
@@ -786,7 +790,10 @@ function Animations({ d, recharger, flash }) {
       <h3>Le catalogue</h3>
       <p className="adm-aide">
         Chaque scène est implémentée dans le code. Ici tu l'actives, tu règles sa durée
-        et son rang. Le choix de celles qui jouent après un dossier précis se fait
+        et son rang. <strong>Tant que « Attendre que le joueur ferme » est coché, la
+        durée ne referme rien</strong> : elle règle seulement la vitesse interne de la
+        scène — la frappe d'un texte, le remplissage d'une barre. Une durée plus
+        longue ralentit, elle ne fait pas patienter. Le choix de celles qui jouent après un dossier précis se fait
         dans l'éditeur de ce dossier.
       </p>
       <ul className="adm-liste">
