@@ -105,17 +105,23 @@ export function sequencePour(declencheur, dossier, catalogue, global = ANIM_DEFA
 
   const parCle = new Map(catalogue.map((a) => [a.cle, a]));
 
-  /* Si le dossier impose une séquence, elle fait loi — et son ordre aussi.
-     Sinon, toutes les scènes actives de ce déclencheur, dans l'ordre du catalogue. */
-  let cles;
-  if (Array.isArray(reglage.sequence) && reglage.sequence.length) {
-    cles = reglage.sequence.filter((c) => parCle.get(c)?.declencheur === declencheur);
-  } else {
-    cles = catalogue
-      .filter((a) => a.declencheur === declencheur && a.actif !== false)
-      .sort((a, b) => a.ordre - b.ordre)
-      .map((a) => a.cle);
-  }
+  /* Si le dossier impose une séquence POUR CE DÉCLENCHEUR, elle fait loi —
+     et son ordre aussi. S'il n'en dit rien, le catalogue reprend la main.
+
+     Attention, c'est le piège : une séquence qui ne cite que les scènes de
+     récompense ne doit pas éteindre l'ouverture du dossier, l'indice ou le
+     parchemin. « Le dossier impose » veut dire « pour ce qu'il nomme », pas
+     « pour tout le jeu ». */
+  const impose = Array.isArray(reglage.sequence)
+    ? reglage.sequence.filter((c) => parCle.get(c)?.declencheur === declencheur)
+    : [];
+
+  const cles = impose.length
+    ? impose
+    : catalogue
+        .filter((a) => a.declencheur === declencheur && a.actif !== false)
+        .sort((a, b) => a.ordre - b.ordre)
+        .map((a) => a.cle);
 
   return cles
     .map((cle) => {

@@ -12,6 +12,7 @@ import {
   listerMedias, enregistrerMedia, supprimerMedia, pilote,
 } from '@/lib/donnees';
 import { etatTemps, maintenant, jalons } from '@/lib/temps';
+import { diagnostic } from '@/lib/donnees';
 import { LISTE_TYPES, TYPES } from '@/lib/types';
 import { SCENES } from '@/lib/animations';
 
@@ -19,6 +20,11 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
   if (!(await estAdmin())) return introuvable();
+
+  /* Avant tout : la base répond-elle ? Si non, on le DIT, avec ce qu'il faut
+     corriger — plutôt qu'une 500 et une console blanche. */
+  const diag = await diagnostic();
+  if (!diag.ok) return json({ panne: diag, pilote: pilote() });
 
   await amorcerAnimations();
   const cfg = await lireConfig();

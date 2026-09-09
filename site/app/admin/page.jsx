@@ -16,6 +16,31 @@ const poster = async (corps) => {
   return r.json();
 };
 
+/* La base ne répond pas. Dire quoi, et quoi faire. */
+function Panne({ d, reessayer }) {
+  return (
+    <main className="adm">
+      <header className="adm-tete">
+        <h1>La console</h1>
+        <div className="adm-etat">
+          <span className="adm-pastille attention">● BASE INJOIGNABLE</span>
+        </div>
+      </header>
+      <p className="adm-alerte">{d.panne.message}</p>
+      <p className="adm-aide">
+        Projet visé : <code>{d.panne.url}</code>
+        {d.panne.brut && <> · réponse de Supabase : <code>{d.panne.brut}</code></>}
+      </p>
+      <p className="adm-aide">
+        Les variables se changent dans Vercel → Settings → Environment Variables.
+        Une variable modifiée ne s'applique qu'au <strong>déploiement suivant</strong> :
+        pense à redéployer.
+      </p>
+      <button className="adm-primaire" onClick={reessayer}>Réessayer</button>
+    </main>
+  );
+}
+
 /* La porte. Un mot de passe, rien d'autre : une seule personne s'en sert. */
 function Connexion({ onEntre }) {
   const [mdp, setMdp] = useState('');
@@ -86,6 +111,7 @@ export default function Console() {
   const flash = (t) => { setMsg(t); setTimeout(() => setMsg(''), 2200); };
 
   if (ferme) return <Connexion onEntre={charger} />;
+  if (d?.panne) return <Panne d={d} reessayer={charger} />;
   if (err) return <main className="adm"><p className="adm-err">{err}</p></main>;
   if (!d) return <main className="adm"><p>…</p></main>;
 

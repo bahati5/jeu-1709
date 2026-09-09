@@ -5,7 +5,7 @@
  * `payload` que le serveur a bien voulu servir et l'affiche. Ajouter un
  * dossier ne touche pas ce fichier ; ajouter un TYPE, oui.
  */
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 const lignes = (t) => String(t || '').split('\n');
 
@@ -184,7 +184,7 @@ const PAR_TYPE = {
 
 /* ------------------------------------------------------------------ */
 
-export function Manche({ m, onRepondre, onPasse, onAnomalie, onIndice }) {
+export function Manche({ m, onRepondre, onPasse, onAnomalie, onIndice, onAssemble }) {
   const [anomalie, setAnomalie] = useState('');
   const [verdict, setVerdict] = useState('');
   const [verdictPasse, setVerdictPasse] = useState('');
@@ -196,6 +196,15 @@ export function Manche({ m, onRepondre, onPasse, onAnomalie, onIndice }) {
   if (!m) return null;
   const Rendu = PAR_TYPE[m.type];
   const fait = ordre.every((v, i) => v === i);
+
+  /* Le taquin vient d'être reconstitué : la scène « assemblage » se joue,
+     une fois, avant que le champ de réponse n'apparaisse. */
+  const dejaVu = useRef(false);
+  useEffect(() => {
+    if (m.type !== 'assemblage' || !fait || m.resolu || dejaVu.current) return;
+    dejaVu.current = true;
+    onAssemble?.();
+  }, [fait, m.type, m.resolu, onAssemble]);
 
   /* Le champ n'apparaît que quand la manche attend une réponse. */
   const aChamp = m.aResoudre && !m.resolu

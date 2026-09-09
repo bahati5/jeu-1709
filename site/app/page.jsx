@@ -108,6 +108,27 @@ export default function Jeu() {
     if (seq.length) setScenes(seq); else charger();
   }, [d, charger]);
 
+  /* Les scènes d'entrée. Le catalogue les connaît depuis le début
+     (« Ouverture du fonds » sur `chargement`, « Ouverture d'un dossier »
+     sur `jour`) mais rien ne les appelait : voilà l'appel.
+     Une fois par session, et par dossier — pas à chaque rechargement. */
+  useEffect(() => {
+    if (!d || d.phase !== 'enquete') return;
+    if (boot || intro || scenes) return;
+
+    if (!vu.lire('sc:chargement')) {
+      vu.poser('sc:chargement');
+      jouer('chargement');
+      return;                      // le dossier s'ouvrira juste après
+    }
+
+    const slug = d.manche?.slug;
+    if (slug && !d.manche.resolu && !vu.lire(`sc:jour:${slug}`)) {
+      vu.poser(`sc:jour:${slug}`);
+      jouer('jour');
+    }
+  }, [d, boot, intro, scenes, jouer]);
+
   const finScenes = useCallback(async (vues) => {
     setScenes(null);
     if (vues?.length) await api('/api/ouvrir', { scenes: vues }, 'PATCH');
@@ -148,6 +169,8 @@ export default function Jeu() {
     return r;
   };
 
+  const assemblage = () => jouer('assemblage');
+
   const anomalie = async (saisie) => {
     const r = await api('/api/verify', { slug: d.manche.slug, quoi: 'anomalie', saisie });
     if (r.ok) jouer('anomalie', { texte: r.texte });
@@ -171,7 +194,7 @@ export default function Jeu() {
                 {onglet === 'manche' && (
                   d.manche
                     ? <Manche m={d.manche} onRepondre={repondre} onPasse={passe}
-                        onAnomalie={anomalie} onIndice={indice} />
+                        onAnomalie={anomalie} onIndice={indice} onAssemble={assemblage} />
                     : <p className="veille">Le greffe ne verse rien aujourd'hui.</p>
                 )}
                 {onglet === 'tableau' && <Tableau d={d} />}

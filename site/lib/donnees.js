@@ -52,7 +52,11 @@ async function ecrireFichier(db) {
 
 export async function lireConfig() {
   if (supaActif()) {
-    const { data } = await supa().from('jeu_config').select('data').eq('id', 'principal').maybeSingle();
+    const { data, error } = await supa().from('jeu_config').select('data').eq('id', 'principal').maybeSingle();
+    /* Ne pas faire tomber le jeu pour une base qui hoquette — mais ne pas
+       non plus servir la config par défaut en silence : ça donne un site
+       qui « marche » et ne montre rien, et on cherche pendant une heure. */
+    if (error) console.error('[fonds47] lecture de jeu_config :', error.message);
     return normaliserConfig(data?.data);
   }
   const db = await lireFichier();
@@ -320,3 +324,37 @@ export async function supprimerMedia(nom) {
 }
 
 export const pilote = () => (supaActif() ? 'supabase' : 'fichier');
+
+/* Est-ce que la base répond vraiment ? Sert à la console pour dire ce qui
+   cloche au lieu d'afficher une erreur 500 illisible à deux heures du matin. */
+export async function diagnostic() {
+  if (!supaActif()) {
+    return {
+      ok: true, pilote: 'fichier',
+      message: 'Pas de Supabase branché : tout est écrit dans .data/fonds47.json.',
+    };
+  }
+  const { error } = await supa().from('jeu_config').select('id').limit(1);
+  if (!error) return { ok: true, pilote: 'supabase' };
+
+  const m = String(error.message || '');
+  let quoi = m;
+  if (/invalid api key/i.test(m)) {
+    quoi = "SUPABASE_SERVICE_ROLE_KEY n'est pas une clé valide pour ce projet. "
+      + 'Reprends la clé secrète (« Secret key » ou « service_role ») du projet '
+      + "dont l'URL est dans SUPABASE_URL, colle-la sans espace ni guillemet, puis redéploie.";
+  } else if (/relation .* does not exist|schema cache/i.test(m)) {
+    quoi = "Les tables n'existent pas dans ce projet : passe lib/schema.sql dans le SQL Editor.";
+  } else if (/fetch failed|ENOTFOUND|getaddrinfo/i.test(m)) {
+    quoi = "SUPABASE_URL ne répond pas. Vérifie l'adresse (https://xxxx.supabase.co, sans / final).";
+  }
+  return { ok: false, pilote: 'supabase', message: quoi, brut: m, url: urlVisible() };
+}
+
+/* L'URL, tronquée : de quoi vérifier qu'on parle au bon projet sans
+   afficher quoi que ce soit de secret. */
+function urlVisible() {
+  const u = String(process.env.SUPABASE_URL || '');
+  const m = u.match(/^https:\/\/([a-z0-9]{4})[a-z0-9]*\.supabase\.co/i);
+  return m ? `https://${m[1]}….supabase.co` : (u ? 'adresse inattendue' : 'absente');
+}
