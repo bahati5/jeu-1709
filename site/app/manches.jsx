@@ -190,9 +190,10 @@ const PAR_TYPE = {
 
 /* ------------------------------------------------------------------ */
 
-export function Manche({ m, onRepondre, onPasse, onAnomalie, onIndice, onAssemble }) {
+export function Manche({ m, onRepondre, onPasse, onAnomalie, onIndice, onAssemble, textesAnomalie }) {
   const [anomalie, setAnomalie] = useState('');
   const [envoiAno, setEnvoiAno] = useState(false);
+  const [refusAno, setRefusAno] = useState('');
   const [verdict, setVerdict] = useState('');
   const [verdictPasse, setVerdictPasse] = useState('');
   const [sel, setSel] = useState(null);
@@ -201,6 +202,7 @@ export function Manche({ m, onRepondre, onPasse, onAnomalie, onIndice, onAssembl
     [...Array(c * l).keys()].sort(() => Math.random() - 0.5));
 
   if (!m) return null;
+  const t = textesAnomalie || {};
   const Rendu = PAR_TYPE[m.type];
   const fait = ordre.every((v, i) => v === i);
 
@@ -287,26 +289,33 @@ export function Manche({ m, onRepondre, onPasse, onAnomalie, onIndice, onAssembl
 
         <Indices m={m} onDemander={onIndice} />
 
-        {/* La seconde couche : aucune consigne ne la signale, mais il faut
-            bien pouvoir la valider — sur un téléphone, un champ sans bouton
-            ne se soumet pas. */}
+        {/* La seconde couche. Elle reste discrète — le champ s'éclaire au
+            toucher — mais elle se comprend : « Signaler autre chose » ne dit
+            pas quoi signaler, ni pourquoi. Les trois textes se réécrivent
+            depuis /admin → L'habillage. */}
         <form className="anomalie" onSubmit={async (e) => {
           e.preventDefault();
-          const t = anomalie.trim();
-          if (!t || envoiAno) return;
-          setEnvoiAno(true);
-          try { await onAnomalie(t); setAnomalie(''); }
-          finally { setEnvoiAno(false); }
+          const saisi = anomalie.trim();
+          if (!saisi || envoiAno) return;
+          setEnvoiAno(true); setRefusAno('');
+          try {
+            const r = await onAnomalie(saisi);
+            if (r?.ok) setAnomalie('');
+            else setRefusAno('Le greffe ne voit pas de quoi vous parlez.');
+          } finally { setEnvoiAno(false); }
         }}>
+          <span className="anomalie-t">{t.titre}</span>
+          {t.aide && <p className="anomalie-a">{t.aide}</p>}
           <div className="anomalie-l">
             <input value={anomalie} onChange={(e) => setAnomalie(e.target.value)}
-              placeholder="Signaler autre chose" aria-label="Signaler autre chose"
+              placeholder={t.invite} aria-label={t.titre}
               autoComplete="off" autoCorrect="off" autoCapitalize="none"
               spellCheck={false} enterKeyHint="send" disabled={envoiAno} />
             <button className="anomalie-b" disabled={!anomalie.trim() || envoiAno}>
-              {envoiAno ? '…' : 'Signaler'}
+              {envoiAno ? '…' : (t.bouton || 'Signaler')}
             </button>
           </div>
+          {refusAno && <p className="anomalie-r">{refusAno}</p>}
         </form>
       </div>
     </article>

@@ -6,7 +6,7 @@
 import { introuvable, json } from '@/lib/acces';
 import { etatTemps, maintenant, dossierDuJour, dossiersOuverts, minutesDepuis } from '@/lib/temps';
 import { lireConfig, lireEtat, lireDossier, muterEtat } from '@/lib/donnees';
-import { verifierDossier, verifierPasse } from '@/lib/reponses';
+import { verifier, verifierDossier, verifierPasse } from '@/lib/reponses';
 
 export const dynamic = 'force-dynamic';
 

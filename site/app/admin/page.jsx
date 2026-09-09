@@ -626,6 +626,7 @@ function Habillage({ d, recharger, flash }) {
   const maj = (p) => setC((x) => ({ ...x, ...p }));
   const majIntro = (p) => setC((x) => ({ ...x, intro: { ...(x.intro || {}), ...p } }));
   const majAttente = (p) => setC((x) => ({ ...x, attente: { ...(x.attente || {}), ...p } }));
+  const majAno = (p) => setC((x) => ({ ...x, anomalie: { ...(x.anomalie || {}), ...p } }));
 
   return (
     <section>
@@ -687,6 +688,29 @@ function Habillage({ d, recharger, flash }) {
       <label className="adm-bloc">Le texte sous le titre
         <textarea rows={3} value={c.attente?.texte || ''}
           onChange={(e) => majAttente({ texte: e.target.value })} />
+      </label>
+
+      <h3>Le champ discret <em>— la seconde couche</em></h3>
+      <p className="adm-aide">
+        Sous chaque manche, un champ qui n'a rien à voir avec l'énigme du jour :
+        c'est là qu'il signale ce qu'il a remarqué en marge et que personne ne
+        lui demande. Il faut que ce soit compréhensible sans être une consigne —
+        « Signaler autre chose » ne disait ni quoi, ni pourquoi.
+      </p>
+      <div className="adm-grille">
+        <label>Le titre du champ
+          <input value={c.anomalie?.titre || ''} onChange={(e) => majAno({ titre: e.target.value })} />
+        </label>
+        <label>Le texte dans le champ vide
+          <input value={c.anomalie?.invite || ''} onChange={(e) => majAno({ invite: e.target.value })} />
+        </label>
+        <label>Le bouton
+          <input value={c.anomalie?.bouton || ''} onChange={(e) => majAno({ bouton: e.target.value })} />
+        </label>
+      </div>
+      <label className="adm-bloc">La phrase d'explication <em>— vide : aucune explication</em>
+        <textarea rows={3} value={c.anomalie?.aide || ''}
+          onChange={(e) => majAno({ aide: e.target.value })} />
       </label>
 
       <h3>Le fonds</h3>

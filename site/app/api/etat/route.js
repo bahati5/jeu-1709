@@ -34,6 +34,7 @@ export async function GET() {
     intro: cfg.intro,
     attente: cfg.attente,
     piedFonds: cfg.piedFonds,
+    anomalie: cfg.anomalie,
     horloge: e.t,
     fuseau: cfg.fuseau,
     tailleFonds: cfg.tailleFonds,

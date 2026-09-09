@@ -214,7 +214,8 @@ export default function Jeu() {
                 {onglet === 'manche' && (
                   d.manche
                     ? <Manche m={d.manche} onRepondre={repondre} onPasse={passe}
-                        onAnomalie={anomalie} onIndice={indice} onAssemble={assemblage} />
+                        onAnomalie={anomalie} onIndice={indice} onAssemble={assemblage}
+                        textesAnomalie={d.anomalie} />
                     : <p className="veille">Le greffe ne verse rien aujourd'hui.</p>
                 )}
                 {onglet === 'tableau' && <Tableau d={d} />}

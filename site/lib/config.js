@@ -25,6 +25,16 @@ export const CONFIG_DEFAUT = {
   /* Le pied de la vue « le fonds ». */
   piedFonds: '',
 
+  /* La seconde couche. Le champ discret sous chaque manche : ce n'est pas
+     la réponse à l'énigme du jour, c'est ce qu'il a remarqué en marge et
+     que personne ne lui demande. Tout se réécrit depuis /admin. */
+  anomalie: {
+    titre: 'CE QUI NE COLLE PAS',
+    invite: 'un détail qui cloche, une contradiction…',
+    bouton: 'Signaler',
+    aide: "Rien ne vous oblige à remplir ce champ. Mais si quelque chose vous a arrêté — un détail qui revient, une date qui ne tient pas — dites-le ici. Le greffe en tient compte.",
+  },
+
   /* Le calendrier */
   debut: '2026-09-10',
   fin: '2026-09-17',
@@ -83,6 +93,7 @@ export function normaliserConfig(c) {
   cfg.papierNet = cfg.papierNet === true;
   cfg.intro = { ...CONFIG_DEFAUT.intro, ...(cfg.intro || {}) };
   cfg.attente = { ...CONFIG_DEFAUT.attente, ...(cfg.attente || {}) };
+  cfg.anomalie = { ...CONFIG_DEFAUT.anomalie, ...(cfg.anomalie || {}) };
   return cfg;
 }
 

@@ -231,8 +231,13 @@ body{margin:0;background:#08070a;-webkit-font-smoothing:antialiased}
 .indices-pied small{font-family:var(--fm);font-size:10px;color:var(--ink2)}
 
 /* ---------- l'anomalie : rien ne la signale ---------- */
-.anomalie{margin-top:26px;opacity:.34;transition:opacity .3s}
+.anomalie{margin-top:26px;opacity:.5;transition:opacity .3s;
+  border-top:1px dotted var(--edge);padding-top:14px}
 .anomalie:hover,.anomalie:focus-within{opacity:1}
+.anomalie-t{display:block;font-family:var(--fm);font-size:9.5px;letter-spacing:.14em;
+  color:var(--wax);margin-bottom:7px}
+.anomalie-a{font-size:12.5px;line-height:1.65;color:var(--ink2);margin:0 0 10px;font-style:italic}
+.anomalie-r{font-family:var(--fm);font-size:10.5px;color:var(--wax);margin:8px 0 0}
 .anomalie-l{display:flex;gap:8px}
 .anomalie-b{font-family:var(--fm);font-size:10.5px;letter-spacing:.1em;padding:0 12px;
   min-height:40px;border:1px dashed var(--edge);background:transparent;color:var(--ink2);cursor:pointer}

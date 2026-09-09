@@ -12,7 +12,8 @@
     "enigmes": "node scripts/test-enigmes.mjs",
     "temps": "node scripts/test-temps.mjs",
     "aujourdhui": "node scripts/jouer-aujourdhui.mjs",
-    "animations": "node scripts/test-animations.mjs"
+    "animations": "node scripts/test-animations.mjs",
+    "routes": "node scripts/test-routes.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.115.0",
