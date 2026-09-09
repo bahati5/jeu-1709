@@ -42,25 +42,31 @@ function Pieces({ noms }) {
 function Depot({ libelleChamp = 'VOTRE DÉPÔT', placeholder, bouton = 'Déposer',
                  onEnvoyer, bloque, verdict }) {
   const [v, setV] = useState('');
+  const [envoi, setEnvoi] = useState(false);
+
   const envoyer = async () => {
-    if (!v.trim() || bloque) return;
+    if (!v.trim() || bloque || envoi) return;
     const garde = v;
-    setV('');
-    await onEnvoyer(garde);
+    setEnvoi(true);
+    try { await onEnvoyer(garde); setV(''); }
+    finally { setEnvoi(false); }
   };
+
   return (
     <div className="depot">
       <label>{libelleChamp}</label>
       <div className="depot-l">
         <input className="champ" value={v} onChange={(e) => setV(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); envoyer(); } }}
-          placeholder={placeholder || ''} disabled={bloque} autoComplete="off"
-          aria-label={libelleChamp} />
-        <button type="button" className="deposer" onClick={envoyer} disabled={bloque || !v.trim()}>
-          {bouton}
+          placeholder={placeholder || ''} disabled={bloque || envoi} autoComplete="off"
+          autoCorrect="off" autoCapitalize="none" spellCheck={false}
+          enterKeyHint="send" aria-label={libelleChamp} />
+        <button type="button" className="deposer" onClick={envoyer}
+          disabled={bloque || envoi || !v.trim()}>
+          {envoi ? '…' : bouton}
         </button>
       </div>
-      <p className="verdict">{verdict || ''}</p>
+      <p className="verdict">{envoi ? 'Le greffe examine…' : (verdict || '')}</p>
     </div>
   );
 }
@@ -186,6 +192,7 @@ const PAR_TYPE = {
 
 export function Manche({ m, onRepondre, onPasse, onAnomalie, onIndice, onAssemble }) {
   const [anomalie, setAnomalie] = useState('');
+  const [envoiAno, setEnvoiAno] = useState(false);
   const [verdict, setVerdict] = useState('');
   const [verdictPasse, setVerdictPasse] = useState('');
   const [sel, setSel] = useState(null);
@@ -280,13 +287,26 @@ export function Manche({ m, onRepondre, onPasse, onAnomalie, onIndice, onAssembl
 
         <Indices m={m} onDemander={onIndice} />
 
-        {/* La seconde couche : aucune consigne ne la signale. */}
-        <form className="anomalie" onSubmit={(e) => {
+        {/* La seconde couche : aucune consigne ne la signale, mais il faut
+            bien pouvoir la valider — sur un téléphone, un champ sans bouton
+            ne se soumet pas. */}
+        <form className="anomalie" onSubmit={async (e) => {
           e.preventDefault();
-          if (anomalie.trim()) { onAnomalie(anomalie); setAnomalie(''); }
+          const t = anomalie.trim();
+          if (!t || envoiAno) return;
+          setEnvoiAno(true);
+          try { await onAnomalie(t); setAnomalie(''); }
+          finally { setEnvoiAno(false); }
         }}>
-          <input value={anomalie} onChange={(e) => setAnomalie(e.target.value)}
-            placeholder="Signaler autre chose" aria-label="Signaler autre chose" />
+          <div className="anomalie-l">
+            <input value={anomalie} onChange={(e) => setAnomalie(e.target.value)}
+              placeholder="Signaler autre chose" aria-label="Signaler autre chose"
+              autoComplete="off" autoCorrect="off" autoCapitalize="none"
+              spellCheck={false} enterKeyHint="send" disabled={envoiAno} />
+            <button className="anomalie-b" disabled={!anomalie.trim() || envoiAno}>
+              {envoiAno ? '…' : 'Signaler'}
+            </button>
+          </div>
         </form>
       </div>
     </article>

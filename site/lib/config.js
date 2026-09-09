@@ -12,6 +12,7 @@ export const CONFIG_DEFAUT = {
   /* L'habillage. Deux directions, choisies depuis /admin. */
   skin: 'grimoire',          // 'grimoire' | 'chambre'
   amorcage: true,            // l'écran d'accès au premier chargement
+  papierNet: false,          // true = pas de bords déchirés (secours d'affichage)
   surtitre: '',              // la ligne en petites capitales, au-dessus du titre
   cote: '',                  // la cote affichée dans le bandeau (ex. 1709)
 
@@ -79,6 +80,7 @@ export function normaliserConfig(c) {
 
   cfg.skin = cfg.skin === 'chambre' ? 'chambre' : 'grimoire';
   cfg.amorcage = cfg.amorcage !== false;
+  cfg.papierNet = cfg.papierNet === true;
   cfg.intro = { ...CONFIG_DEFAUT.intro, ...(cfg.intro || {}) };
   cfg.attente = { ...CONFIG_DEFAUT.attente, ...(cfg.attente || {}) };
   return cfg;

@@ -9,7 +9,7 @@
  * L'habillage (skin, surtitre, cote, introduction, écran d'attente) vient
  * lui aussi de la base : rien de tout ça n'est écrit dans ce fichier.
  */
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Manche } from './manches';
 import { Lecteur } from './scenes';
 import { sequencePour } from '@/lib/animations';
@@ -56,8 +56,12 @@ export default function Jeu() {
   const [onglet, setOnglet] = useState('manche');
   const [scenes, setScenes] = useState(null);
   const [ctx, setCtx] = useState({});
-  const [boot, setBoot] = useState(false);
-  const [intro, setIntro] = useState(false);
+  /* L'entrée est une suite d'étapes, pas trois booléens qui se croisent :
+     attente → amorçage → introduction → scènes d'ouverture → jeu.
+     Deux effets qui se posaient des booléens dans la même passe lisaient
+     les anciennes valeurs : les scènes d'ouverture partaient pendant
+     l'amorçage et se terminaient sans que personne ne les voie. */
+  const [etape, setEtape] = useState('attente');
 
   const charger = useCallback(async () => {
     const r = await fetch('/api/etat', { cache: 'no-store' });
@@ -67,23 +71,36 @@ export default function Jeu() {
 
   useEffect(() => { charger(); }, [charger]);
 
-  /* L'amorçage et l'introduction : une fois par session, et seulement si
-     elle les a activés depuis la console. */
+  /* Le premier onglet ouvert, si « la manche » ne l'est pas : sinon
+     l'écran reste vide sans raison visible. */
   useEffect(() => {
     if (!d || d.phase === 'ferme') return;
-    /* Si « la manche » n'est pas ouverte, on se pose sur le premier onglet
-       qui l'est — sinon l'écran reste vide sans raison visible. */
     const ouverts = ORDRE_ONGLETS.filter((o) => (d.onglets || []).includes(o));
     if (ouverts.length && !ouverts.includes(onglet)) setOnglet(ouverts[0]);
-    if (d.amorcage && !vu.lire('amorce')) setBoot(true);
-    if (d.intro?.titre && !vu.lire('intro')) setIntro(true);
-  }, [d?.amorcage, d?.intro?.titre, d?.phase, d?.onglets?.join(',')]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [d?.onglets?.join(',')]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  /* La première étape, décidée une seule fois, quand l'état arrive. */
   useEffect(() => {
-    if (!boot) return;
-    const t = setTimeout(() => { setBoot(false); vu.poser('amorce'); }, 3000);
+    if (!d || etape !== 'attente') return;
+    if (d.phase === 'ferme') { setEtape('jeu'); return; }
+    if (d.amorcage && !vu.lire('amorce')) { setEtape('amorcage'); return; }
+    if (d.intro?.titre && !vu.lire('intro')) { setEtape('intro'); return; }
+    setEtape('ouverture');
+  }, [d, etape]);
+
+  /* L'amorçage se referme tout seul. */
+  useEffect(() => {
+    if (etape !== 'amorcage') return;
+    const t = setTimeout(() => finirAmorcage(), 3000);
     return () => clearTimeout(t);
-  }, [boot]);
+  }, [etape]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const finirAmorcage = useCallback(() => {
+    vu.poser('amorce');
+    setEtape(d?.intro?.titre && !vu.lire('intro') ? 'intro' : 'ouverture');
+  }, [d?.intro?.titre]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const finirIntro = useCallback(() => { vu.poser('intro'); setEtape('ouverture'); }, []);
 
   /* Ouvrir la manche fait partir le chrono et l'horloge des indices. */
   useEffect(() => {
@@ -108,26 +125,29 @@ export default function Jeu() {
     if (seq.length) setScenes(seq); else charger();
   }, [d, charger]);
 
-  /* Les scènes d'entrée. Le catalogue les connaît depuis le début
-     (« Ouverture du fonds » sur `chargement`, « Ouverture d'un dossier »
-     sur `jour`) mais rien ne les appelait : voilà l'appel.
-     Une fois par session, et par dossier — pas à chaque rechargement. */
+  /* Les scènes d'ouverture. Elles partent DANS LE MÊME LOT que le premier
+     affichage du dossier : le voile est déjà là quand la page se peint,
+     au lieu de voir le dossier, puis le voile, puis le dossier.
+
+     Le « une seule fois » vient du serveur, pas du navigateur :
+     `minutes === 0` veut dire que le dossier vient d'être ouvert. Une
+     mémoire de session, elle, ne se vide jamais dans une app posée sur
+     l'écran d'accueil — l'animation ne se rejouait donc plus jamais. */
   useEffect(() => {
-    if (!d || d.phase !== 'enquete') return;
-    if (boot || intro || scenes) return;
+    if (etape !== 'ouverture' || !d) return;
+    if (d.phase !== 'enquete') { setEtape('jeu'); return; }
 
-    if (!vu.lire('sc:chargement')) {
-      vu.poser('sc:chargement');
-      jouer('chargement');
-      return;                      // le dossier s'ouvrira juste après
-    }
-
-    const slug = d.manche?.slug;
-    if (slug && !d.manche.resolu && !vu.lire(`sc:jour:${slug}`)) {
-      vu.poser(`sc:jour:${slug}`);
-      jouer('jour');
-    }
-  }, [d, boot, intro, scenes, jouer]);
+    const cat = d.catalogue || [];
+    const seq = [
+      ...sequencePour('chargement', d.manche, cat, d.animations, d.vuesAnim),
+      ...(d.manche && !d.manche.resolu && (d.manche.minutes ?? 0) === 0
+        ? sequencePour('jour', d.manche, cat, d.animations, d.vuesAnim)
+        : []),
+    ];
+    setCtx({ titre: d.titre, date: d.jour?.date });
+    if (seq.length) setScenes(seq);
+    setEtape('jeu');
+  }, [etape, d]);
 
   const finScenes = useCallback(async (vues) => {
     setScenes(null);
@@ -135,7 +155,7 @@ export default function Jeu() {
     charger();
   }, [charger]);
 
-  const skin = `sk ${d?.skin === 'chambre' ? 'chambre' : ''}`;
+  const skin = `sk ${d?.skin === 'chambre' ? 'chambre' : ''} ${d?.papierNet ? 'papier-net' : ''}`;
 
   if (!d) return <div className="sk"><Decor /><div className="colonne"><p className="chargement">…</p></div></div>;
 
@@ -182,11 +202,11 @@ export default function Jeu() {
       <Decor />
 
       <div className="colonne">
-        {intro && d.phase !== 'ferme'
-          ? <Intro intro={d.intro} surtitre={d.surtitre} onFini={() => { setIntro(false); vu.poser('intro'); }} />
+        {etape === 'intro' && d.phase !== 'ferme'
+          ? <Intro intro={d.intro} surtitre={d.surtitre} onFini={finirIntro} />
           : d.phase !== 'enquete'
             ? <Attente d={d} />
-            : (
+            : etape !== 'jeu' ? null : (
               <div className="jeu">
                 <Tete d={d} />
                 <Scelles d={d} />
@@ -210,13 +230,13 @@ export default function Jeu() {
             )}
       </div>
 
-      {boot && <Amorcage titre={d.titre} onFini={() => { setBoot(false); vu.poser('amorce'); }} />}
+      {etape === 'amorcage' && <Amorcage titre={d.titre} onFini={finirAmorcage} />}
 
       {scenes && (
         <Lecteur sequence={scenes} contexte={ctx} reglages={d.animations} onFini={finScenes} />
       )}
 
-      {d.repetition && !boot && !intro && (
+      {d.repetition && etape === 'jeu' && (
         <Repetition d={d} recharger={charger} jouerScene={(cle) => {
           const a = (d.catalogue || []).find((x) => x.cle === cle);
           setCtx({

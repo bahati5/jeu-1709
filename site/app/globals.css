@@ -148,7 +148,21 @@ body{margin:0;background:#08070a;-webkit-font-smoothing:antialiased}
 .feuille .pli2{background:var(--paper2);box-shadow:0 12px 26px rgba(0,0,0,.4);transform:rotate(1.2deg) translateY(4px);opacity:.7}
 .feuille .pli3{background-color:var(--paper);box-shadow:0 14px 30px rgba(0,0,0,.5);
   background-image:linear-gradient(180deg,transparent 37.4%,rgba(120,104,74,.14) 37.8%,transparent 38.2%)}
-.feuille>.dedans{position:relative;z-index:1}
+.feuille>.dedans{position:relative;z-index:1;
+  /* Safari compose les trois couches de papier dans un calque à part à cause
+     de `filter:url(#deckle)`, et ne le repeint plus quand on tape dans un
+     champ posé dessus : le texte n'apparaissait qu'au retour sur l'app.
+     Ce calque-ci lui est propre, il se repeint tout seul. */
+  transform:translateZ(0);-webkit-transform:translateZ(0)}
+.feuille{isolation:isolate}
+.feuille .pli{pointer-events:none;contain:paint}
+.champ,.anomalie input{-webkit-text-fill-color:var(--ink);-webkit-appearance:none;appearance:none}
+.champ:disabled,.anomalie input:disabled{opacity:.55}
+
+/* La sortie de secours : si le papier déchiré s'entête à mal se repeindre
+   sur son téléphone, `/admin` → L'habillage → « papier net » l'éteint.
+   Le reste de l'habillage ne bouge pas. */
+.sk.papier-net .feuille .pli{filter:none}
 .f-tete{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:4px}
 .f-genre{font-family:var(--fm);font-size:9px;letter-spacing:.16em;color:var(--ink2)}
 .f-chrono{font-family:var(--fm);font-size:9px;letter-spacing:.1em;color:var(--wax)}
@@ -219,7 +233,11 @@ body{margin:0;background:#08070a;-webkit-font-smoothing:antialiased}
 /* ---------- l'anomalie : rien ne la signale ---------- */
 .anomalie{margin-top:26px;opacity:.34;transition:opacity .3s}
 .anomalie:hover,.anomalie:focus-within{opacity:1}
-.anomalie input{width:100%;font-family:var(--fm);font-size:16px;padding:9px 11px;
+.anomalie-l{display:flex;gap:8px}
+.anomalie-b{font-family:var(--fm);font-size:10.5px;letter-spacing:.1em;padding:0 12px;
+  min-height:40px;border:1px dashed var(--edge);background:transparent;color:var(--ink2);cursor:pointer}
+.anomalie-b:disabled{opacity:.4;cursor:not-allowed}
+.anomalie input{flex:1;min-width:0;font-family:var(--fm);font-size:16px;padding:9px 11px;
   border:1px dashed var(--edge);background:transparent;color:var(--ink);border-radius:0}
 
 /* ---------- le tableau ---------- */

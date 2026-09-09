@@ -28,6 +28,7 @@ export async function GET() {
     /* L'habillage — saisi depuis /admin, jamais écrit ici. */
     skin: cfg.skin,
     amorcage: cfg.amorcage,
+    papierNet: cfg.papierNet,
     surtitre: cfg.surtitre,
     cote: cfg.cote,
     intro: cfg.intro,

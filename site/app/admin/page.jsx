@@ -653,6 +653,18 @@ function Habillage({ d, recharger, flash }) {
           onChange={(e) => maj({ amorcage: e.target.checked })} />
         Écran d'accès au premier chargement
       </label>
+      <label className="adm-case">
+        <input type="checkbox" checked={c.papierNet === true}
+          onChange={(e) => maj({ papierNet: e.target.checked })} />
+        Papier net <em>— sans bords déchirés</em>
+      </label>
+      <p className="adm-aide">
+        Les bords déchirés sont dessinés par un filtre SVG. Sur certains
+        iPhone, ce filtre empêche le champ de réponse de se rafraîchir : on
+        tape et rien ne s'affiche jusqu'à ce qu'on quitte l'app et qu'on
+        revienne. Si ça t'arrive sur son téléphone, coche cette case — le
+        papier devient net, tout le reste ne bouge pas.
+      </p>
 
       <h3>L'introduction <em>— titre vide : pas d'écran d'introduction</em></h3>
       <div className="adm-grille">

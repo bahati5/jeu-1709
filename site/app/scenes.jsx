@@ -195,7 +195,21 @@ export function Lecteur({ sequence, contexte, reglages, onFini }) {
   const minuteur = useRef(null);
   const scene = sequence?.[i];
 
+  /* Le doigt qui vient d'appuyer sur « Déposer » est encore posé quand le
+     voile arrive dessous : sans ce délai, le même geste balaie la scène
+     avant qu'elle n'ait commencé, et on a l'impression qu'il ne s'est rien
+     passé. 400 ms suffisent, et ça ne se sent pas. */
+  const ouvert = useRef(0);
+  useEffect(() => { ouvert.current = Date.now(); }, [i]);
+
   const suivant = useCallback(() => {
+    if (Date.now() - ouvert.current < 400) return;
+    clearTimeout(minuteur.current);
+    setI((x) => x + 1);
+  }, []);
+
+  /* Le minuteur, lui, n'est pas concerné par ce délai. */
+  const forcer = useCallback(() => {
     clearTimeout(minuteur.current);
     setI((x) => x + 1);
   }, []);
@@ -203,9 +217,9 @@ export function Lecteur({ sequence, contexte, reglages, onFini }) {
   useEffect(() => {
     if (!sequence?.length) { onFini?.(); return; }
     if (i >= sequence.length) { onFini?.(sequence.map((s) => s.cle)); return; }
-    minuteur.current = setTimeout(suivant, sequence[i].duree);
+    minuteur.current = setTimeout(forcer, sequence[i].duree);
     return () => clearTimeout(minuteur.current);
-  }, [i, sequence, suivant, onFini]);
+  }, [i, sequence, forcer, onFini]);
 
   /* Respecter la préférence système, si l'admin l'a demandé. */
   useEffect(() => {
