@@ -20,7 +20,7 @@ export const CONFIG_DEFAUT = {
   intro: { titre: '', texte: '', bouton: 'Entrer' },
 
   /* L'écran d'attente, avant l'ouverture. */
-  attente: { titre: '', texte: '' },
+  attente: { titre: '', texte: '', lien: 'Ce que c’est' },
 
   /* Le pied de la vue « le fonds ». */
   piedFonds: '',

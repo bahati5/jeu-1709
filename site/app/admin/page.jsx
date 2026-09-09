@@ -507,20 +507,37 @@ function Programme({ d, recharger, flash }) {
 function Essai({ d, recharger, flash }) {
   const [reponse, setReponse] = useState(null);
   const [occupe, setOccupe] = useState(false);
+  const [erreur, setErreur] = useState('');
+  const [certaine, setCertaine] = useState(false);
   const essai = d.etat?.essai?.actif ? d.etat.essai : null;
   const jours = d.temps?.jours || [];
   const jour = (d.temps?.jour?.index ?? 0) + 1;
   const total = jours.length || 8;
 
+  /* Une action qui échoue doit se voir. Avant, un cookie expiré renvoyait
+     404 et le bouton ne faisait rien, en silence. */
   const act = async (corps) => {
-    setOccupe(true);
-    const r = await fetch('/api/repetition', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(corps),
-    }).then((x) => x.json()).catch(() => ({}));
-    await recharger();
-    setOccupe(false);
-    return r;
+    setOccupe(true); setErreur('');
+    try {
+      const r = await fetch('/api/repetition', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(corps),
+      });
+      if (!r.ok) {
+        setErreur(r.status === 404
+          ? 'La console ne te reconnaît plus. Recharge la page et retape le mot de passe.'
+          : `Le serveur a répondu ${r.status}. Rien n'a été changé.`);
+        return {};
+      }
+      const j = await r.json().catch(() => ({}));
+      await recharger();
+      return j;
+    } catch {
+      setErreur("Pas de réseau — rien n'a été changé.");
+      return {};
+    } finally {
+      setOccupe(false);
+    }
   };
 
   if (!essai) {
@@ -614,13 +631,26 @@ function Essai({ d, recharger, flash }) {
         et efface toute la partie d'essai. C'est ce qu'il faut faire juste avant
         de lui envoyer le lien.
       </p>
-      <div className="adm-barre">
-        <button className="adm-danger" disabled={occupe} onClick={async () => {
-          if (!confirm('Sortir du banc d’essai, remettre les vraies dates et effacer la partie d’essai ?')) return;
-          await act({ action: 'essai.fin' });
-          flash('Tout est remis en place. Le jeu est prêt.');
-        }}>Sortir et tout remettre en place</button>
-      </div>
+      {/* Pas de boîte système ici : dans une app posée sur l'écran d'accueil,
+          `confirm()` peut ne jamais s'afficher — et le bouton ne fait alors
+          rien, sans rien dire. Deux boutons, on voit ce qui se passe. */}
+      {!certaine ? (
+        <div className="adm-barre">
+          <button className="adm-danger" disabled={occupe}
+            onClick={() => setCertaine(true)}>Sortir et tout remettre en place</button>
+        </div>
+      ) : (
+        <div className="adm-barre">
+          <button className="adm-danger" disabled={occupe} onClick={async () => {
+            const r = await act({ action: 'essai.fin' });
+            setCertaine(false);
+            if (r?.ok) flash('Tout est remis en place. Le jeu est prêt.');
+          }}>{occupe ? '…' : 'Oui, sortir maintenant'}</button>
+          <button disabled={occupe} onClick={() => setCertaine(false)}>Annuler</button>
+        </div>
+      )}
+
+      {erreur && <p className="adm-alerte">{erreur}</p>}
     </section>
   );
 }
@@ -693,10 +723,19 @@ function Habillage({ d, recharger, flash }) {
       <label className="adm-bloc">Titre
         <input value={c.attente?.titre || ''} onChange={(e) => majAttente({ titre: e.target.value })} />
       </label>
-      <label className="adm-bloc">Le texte sous le titre
-        <textarea rows={3} value={c.attente?.texte || ''}
+      <label className="adm-bloc">Le texte sous le titre <em>— un paragraphe par ligne</em>
+        <textarea rows={5} value={c.attente?.texte || ''}
           onChange={(e) => majAttente({ texte: e.target.value })} />
       </label>
+      <label className="adm-bloc">Le bouton qui rouvre l'introduction
+        <input value={c.attente?.lien || ''} onChange={(e) => majAttente({ lien: e.target.value })} />
+      </label>
+      <p className="adm-aide">
+        Il ouvrira le lien avant le premier jour, sans doute plusieurs fois. Un
+        chiffre qui descend sans un mot ne lui apprend rien : ce bouton rouvre
+        l'introduction autant de fois qu'il veut. Laisse le titre d'introduction
+        vide et le bouton disparaît.
+      </p>
 
       <h3>Le champ discret <em>— la seconde couche</em></h3>
       <p className="adm-aide">
@@ -949,6 +988,7 @@ function Medias({ d, recharger, flash }) {
 /* ------------------------------------------------------------------ */
 
 function Partie({ d, recharger, flash }) {
+  const [razSure, setRazSure] = useState(false);
   const resolus = d.etat.resolus || {};
   return (
     <section>
@@ -984,10 +1024,19 @@ function Partie({ d, recharger, flash }) {
         <button onClick={async () => { await poster({ action: 'bonus', valeur: !d.etat.bonus }); recharger(); }}>
           {d.etat.bonus ? "Refermer l'invitation" : "Ouvrir l'invitation"}
         </button>
-        <button className="adm-danger" onClick={async () => {
-          if (!confirm("Remettre tout l'avancement à zéro ? Le contenu est conservé.")) return;
-          await poster({ action: 'reinitialiser' }); recharger(); flash('Partie remise à zéro');
-        }}>Remettre la partie à zéro</button>
+        {!razSure ? (
+          <button className="adm-danger" onClick={() => setRazSure(true)}>
+            Remettre la partie à zéro
+          </button>
+        ) : (
+          <>
+            <button className="adm-danger" onClick={async () => {
+              await poster({ action: 'reinitialiser' }); setRazSure(false);
+              recharger(); flash('Partie remise à zéro');
+            }}>Oui, tout remettre à zéro</button>
+            <button onClick={() => setRazSure(false)}>Annuler</button>
+          </>
+        )}
       </div>
     </section>
   );

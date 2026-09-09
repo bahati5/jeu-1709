@@ -588,8 +588,13 @@ const CONFIG = {
     bouton: 'Entrer dans le greffe',
   },
   attente: {
-    titre: "Le dossier n'est pas encore versé.",
-    texte: "Il s'ouvrira de lui-même. Rien à faire d'ici là, sinon y penser.",
+    titre: "Le premier dossier n'est pas encore versé.",
+    texte: [
+      "Du 10 au 17 septembre, un dossier s'ouvre ici chaque matin. Huit en tout, un par jour.",
+      "Rien à installer, rien à retenir : cette adresse suffit. Ajoute-la à ton écran d'accueil, elle s'ouvrira comme une application.",
+      "Le premier arrive dans :",
+    ].join('\n'),
+    lien: 'Ce que c’est',
   },
   piedFonds: 'HUIT DOSSIERS. UN PAR JOUR, JUSQU’AU DIX-SEPT.',
 

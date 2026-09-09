@@ -226,9 +226,10 @@ export default function Jeu() {
 
       <div className="colonne">
         {etape === 'intro' && d.phase !== 'ferme'
-          ? <Intro intro={d.intro} surtitre={d.surtitre} onFini={finirIntro} />
+          ? <Intro intro={d.intro} surtitre={d.surtitre} onFini={finirIntro}
+              libelle={d.phase !== 'enquete' ? 'Revenir au compte à rebours' : null} />
           : d.phase !== 'enquete'
-            ? <Attente d={d} />
+            ? <Attente d={d} relire={d.intro?.titre ? () => setEtape('intro') : null} />
             : etape !== 'jeu' ? null : (
               <div className="jeu">
                 <Tete d={d} />
@@ -307,28 +308,39 @@ function Amorcage({ titre, onFini }) {
 }
 
 /* L'introduction — son texte se saisit depuis la console. */
-function Intro({ intro, surtitre, onFini }) {
+function Intro({ intro, surtitre, onFini, libelle }) {
   const paras = String(intro?.texte || '').split('\n').filter((l) => l.trim());
   return (
     <section className="intro">
       {surtitre && <p className="surtitre">{surtitre}</p>}
       <h1 className="titre">{intro.titre}</h1>
       {paras.map((p, i) => <p className="corps" key={i}>{p}</p>)}
-      <button type="button" className="bouton" onClick={onFini}>{intro.bouton || 'Entrer'}</button>
+      <button type="button" className="bouton" onClick={onFini}>
+        {libelle || intro.bouton || 'Entrer'}
+      </button>
     </section>
   );
 }
 
-/* Avant l'ouverture : un sceau de cire, un compte à rebours, rien d'autre. */
-function Attente({ d }) {
+/* Avant l'ouverture : un sceau de cire, un compte à rebours — et de quoi
+   comprendre. Il ouvrira ce lien avant le premier jour, peut-être plusieurs
+   fois : un chiffre qui descend sans un mot ne lui dit rien. L'introduction
+   reste donc à portée de doigt, autant de fois qu'il veut. */
+function Attente({ d, relire }) {
+  const lignes = String(d.attente?.texte || '').split('\n').filter((l) => l.trim());
   return (
     <section className="attente">
       {/* Ce qui est gravé dans la cire : la cote, saisie dans la console. */}
       <div className="cire">{d.cote || ''}</div>
       {d.surtitre && <p className="surtitre">{d.surtitre}</p>}
       <h2 className="titre">{d.attente?.titre || d.titre}</h2>
-      {d.attente?.texte && <p>{d.attente.texte}</p>}
+      {lignes.map((l, i) => <p key={i}>{l}</p>)}
       <Compte cible={d.ouverture} horloge={d.horloge} />
+      {relire && (
+        <button type="button" className="attente-relire" onClick={relire}>
+          {d.attente?.lien || 'Ce que c’est'}
+        </button>
+      )}
     </section>
   );
 }
@@ -514,6 +526,7 @@ function Repetition({ d, recharger, jouerScene }) {
   const [ouvert, setOuvert] = useState(true);
   const [reponse, setReponse] = useState(null);
   const [rapide, setRapide] = useState((d.paliers?.[0] ?? 60) === 0);
+  const [sure, setSure] = useState(false);
 
   const act = async (corps) => {
     const r = await api('/api/repetition', corps);
@@ -572,9 +585,13 @@ function Repetition({ d, recharger, jouerScene }) {
 
       <div className="rep-ligne">
         <button onClick={async () => setReponse(await act({ action: 'reponse' }))}>Voir la réponse</button>
-        <button className="rep-danger" onClick={async () => {
-          if (confirm('Tout remettre à zéro ?')) await act({ action: 'raz' });
-        }}>Tout à zéro</button>
+        {/* Deux temps plutôt qu'une boîte système : dans une app installée,
+            `confirm()` peut ne jamais s'afficher. */}
+        <button className={`rep-danger ${sure ? 'on' : ''}`} onClick={async () => {
+          if (!sure) { setSure(true); return; }
+          setSure(false);
+          await act({ action: 'raz' });
+        }}>{sure ? 'Confirmer ?' : 'Tout à zéro'}</button>
       </div>
 
       {reponse?.ok && (
