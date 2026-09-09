@@ -56,8 +56,11 @@ export const CONFIG_DEFAUT = {
   tailleFonds: 47,
   refus: [],              // les notes de refus des dossiers verrouillés
 
-  /* Les textes de fin, éditables depuis /admin */
-  titreVerdict: 'Les sept scellés sont levés',
+  /* Le final — tout se saisit depuis /admin. */
+  titreVerdict: 'Les scellés sont levés',
+  inviteVerdict: "Une enveloppe scellée. Elle ne s'ouvre qu'à une date.",
+  invitePlaceholder: 'jjmmaaaa',
+  invitation: { titre: '', texte: '' },
   lettreFinale: '',
   lettreFinaleAnomalies: '',
   seuilAnomalies: 4,
@@ -94,6 +97,7 @@ export function normaliserConfig(c) {
   cfg.intro = { ...CONFIG_DEFAUT.intro, ...(cfg.intro || {}) };
   cfg.attente = { ...CONFIG_DEFAUT.attente, ...(cfg.attente || {}) };
   cfg.anomalie = { ...CONFIG_DEFAUT.anomalie, ...(cfg.anomalie || {}) };
+  cfg.invitation = { ...CONFIG_DEFAUT.invitation, ...(cfg.invitation || {}) };
   return cfg;
 }
 

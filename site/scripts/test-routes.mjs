@@ -135,7 +135,42 @@ for (let j = 1; j <= total; j++) {
   }
 }
 
-/* --- 3 · on referme proprement --- */
+/* --- 3 · le final : l'enveloppe et le code du dernier jour --- */
+console.log('\n\x1b[90m  le dernier jour\x1b[0m');
+{
+  await appel('/api/repetition', { methode: 'POST', corps: { action: 'jour', jour: total } });
+  const etat = await appel('/api/etat');
+  const v = etat.json?.verdict;
+
+  if (!v?.ouvert) {
+    rouge("  l'enveloppe ne s'ouvre pas alors que le dernier dossier est résolu");
+  } else {
+    vert("  l'enveloppe s'ouvre");
+    if (v.codeOk) gris('  (le code avait déjà été donné)');
+    if (!v.codeOk && v.lettre) rouge('  LA LETTRE FUITE avant le code');
+    else if (!v.codeOk) vert('  la lettre ne quitte pas le serveur avant le code');
+  }
+
+  const faux = await appel('/api/verify', { methode: 'POST', corps: { quoi: 'code', saisie: '00000000' } });
+  if (jamais500('  code faux', faux)) {
+    if (faux.json?.ok === false) vert('  un mauvais code est refusé');
+    else rouge('  un mauvais code passe');
+  }
+
+  const code = adm.json?.config?.codeFinal;
+  const juste = await appel('/api/verify', { methode: 'POST', corps: { quoi: 'code', saisie: code } });
+  if (jamais500('  code juste', juste)) {
+    if (juste.json?.ok && juste.json.texte) vert('  le bon code ouvre la lettre');
+    else if (juste.json?.ok) rouge('  le bon code passe mais ne rend aucune lettre');
+    else rouge(`  le bon code (« ${code} ») est REFUSÉ`);
+  }
+
+  const apres = await appel('/api/etat');
+  if (apres.json?.verdict?.lettre) vert('  la lettre est servie une fois le code donné');
+  else rouge("  la lettre n'apparaît pas après le code");
+}
+
+/* --- 4 · on referme proprement --- */
 await appel('/api/repetition', { methode: 'POST', corps: { action: 'essai.fin' } });
 vert('\n  le banc d\'essai est refermé, les vraies dates sont revenues');
 

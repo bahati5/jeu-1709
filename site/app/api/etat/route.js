@@ -133,9 +133,31 @@ export async function GET() {
     acquis,
     anomalies,
     scelles: { total, pris: acquis.length },
-    verdict: verdictOuvert(e, etat),
+    /* Le final. La lettre ne quitte le serveur qu'une fois le code juste :
+       avant ça, l'enveloppe est scellée pour de vrai, pas seulement à
+       l'écran. */
+    verdict: verdictOuvert(e, etat)
+      ? {
+          ouvert: true,
+          titre: cfg.titreVerdict,
+          invite: cfg.inviteVerdict,
+          placeholder: cfg.invitePlaceholder,
+          codeOk: Boolean(etat.codeOk),
+          ...(etat.codeOk
+            ? {
+                lettre:
+                  anomalies.length >= (cfg.seuilAnomalies ?? 4) && cfg.lettreFinaleAnomalies
+                    ? cfg.lettreFinaleAnomalies
+                    : cfg.lettreFinale,
+                complete: anomalies.length >= (cfg.seuilAnomalies ?? 4),
+                anomaliesTrouvees: anomalies.length,
+              }
+            : {}),
+        }
+      : null,
     codeOk: Boolean(etat.codeOk),
     bonus: Boolean(etat.bonus),
+    invitation: etat.bonus ? cfg.invitation : null,
     catalogue: catalogue.map(({ cle, nom, declencheur, duree_ms, actif, ordre }) =>
       ({ cle, nom, declencheur, duree_ms, actif, ordre })),
   });

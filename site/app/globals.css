@@ -506,3 +506,38 @@ body{margin:0;background:#08070a;-webkit-font-smoothing:antialiased}
 .rep-hors{margin:0 0 .5rem;color:#c8bfa8;font-size:11px;line-height:1.5;
   background:rgba(201,146,47,.12);border-left:2px solid #c9922f;padding:.4rem .55rem}
 .rep-hors a{color:#e8c078}
+
+/* ============================================================
+   LE FINAL — l'enveloppe, la lettre
+   ============================================================ */
+.enveloppe{animation:monteDoux .45s;text-align:center;padding:22px 4px 8px}
+.env-cire{width:92px;height:92px;margin:0 auto 26px;
+  border-radius:47% 53% 51% 49% / 52% 47% 53% 48%;
+  background:radial-gradient(circle at 30% 24%, rgba(255,220,190,.5) 0%, transparent 34%),
+             radial-gradient(circle at 62% 74%, var(--waxdeep) 0%, transparent 52%),
+             radial-gradient(circle at 42% 38%, var(--waxlit) 0%, var(--wax) 48%, #631610 100%);
+  box-shadow:0 8px 22px rgba(0,0,0,.6), inset 0 -4px 8px rgba(60,8,4,.7);
+  animation:battement 5s ease-in-out infinite}
+.enveloppe h2{font-family:var(--fd);font-weight:600;font-size:calc(22px * var(--dsp) + 2px);
+  line-height:1.24;margin:0 0 12px;letter-spacing:var(--ls);color:var(--paper)}
+.env-invite{font-size:14.5px;line-height:1.8;color:rgba(233,223,198,.66);
+  max-width:32ch;margin:0 auto 24px}
+.env-form{display:flex;gap:8px;max-width:22rem;margin:0 auto}
+.env-form .champ{background:rgba(255,255,255,.06);border:none;
+  border-bottom:2px solid var(--gold);color:var(--paper);text-align:center;letter-spacing:.16em}
+.env-form .champ::placeholder{color:rgba(233,223,198,.34);letter-spacing:.1em}
+.env-form .deposer{background:var(--gold);color:#1a1208;box-shadow:2px 2px 0 rgba(0,0,0,.4)}
+.env-refus{font-family:var(--fm);font-size:11px;color:var(--waxlit);margin:14px 0 0}
+
+.lettre{animation:monteDoux .5s;padding-bottom:8px}
+.lettre h2{font-family:var(--fd);font-weight:600;font-size:calc(21px * var(--dsp) + 2px);
+  margin:6px 0 16px;letter-spacing:var(--ls);color:var(--paper);text-wrap:balance}
+.lettre-p{position:relative;padding:26px 22px;color:#3b2f1f;
+  background:radial-gradient(120% 100% at 12% 0%, rgba(255,250,232,.75) 0%, transparent 55%),
+             radial-gradient(90% 80% at 100% 100%, rgba(120,88,42,.28) 0%, transparent 58%),
+             linear-gradient(158deg,#efe5c9,#dfd1ac 58%,#d0be95);
+  box-shadow:0 14px 34px rgba(0,0,0,.55), inset 0 0 60px rgba(122,90,44,.22)}
+.lettre-p p{font-size:14.5px;line-height:1.85;margin:0 0 13px;white-space:pre-wrap}
+.lettre-p p:last-child{margin:0}
+.lettre-pied{font-family:var(--fm);font-size:10px;letter-spacing:.12em;
+  color:var(--gold);margin:14px 0 0;text-align:right}

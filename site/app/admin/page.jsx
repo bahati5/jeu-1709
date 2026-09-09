@@ -763,12 +763,42 @@ function Regles({ d, recharger, flash }) {
         <textarea rows={3} value={(c.paliers || []).join('\n')}
           onChange={(e) => maj({ paliers: e.target.value.split('\n').map((s) => Number(s.trim())).filter((n) => Number.isFinite(n)) })} />
       </label>
+      <h3>L'enveloppe du dernier jour</h3>
+      <p className="adm-aide">
+        Quand le dernier dossier tombe, l'onglet « L'enveloppe » s'ouvre. Elle
+        reste scellée tant que le code n'est pas donné — et scellée pour de vrai :
+        la lettre ne quitte pas le serveur avant.
+      </p>
+      <div className="adm-grille">
+        <label>Le titre affiché
+          <input value={c.titreVerdict || ''} onChange={(e) => maj({ titreVerdict: e.target.value })} />
+        </label>
+        <label>Ce qui est écrit sous le sceau
+          <input value={c.inviteVerdict || ''} onChange={(e) => maj({ inviteVerdict: e.target.value })} />
+        </label>
+        <label>Le texte gris dans le champ
+          <input value={c.invitePlaceholder || ''} onChange={(e) => maj({ invitePlaceholder: e.target.value })} />
+        </label>
+      </div>
+
       <label className="adm-bloc">La lettre du 17
         <textarea rows={8} value={c.lettreFinale || ''} onChange={(e) => maj({ lettreFinale: e.target.value })} />
       </label>
       <label className="adm-bloc">La lettre du 17 <em>— version s'il a trouvé les anomalies</em>
         <textarea rows={8} value={c.lettreFinaleAnomalies || ''} onChange={(e) => maj({ lettreFinaleAnomalies: e.target.value })} />
       </label>
+      <h3>L'invitation <em>— l'onglet en plus, que tu ouvres depuis « La partie »</em></h3>
+      <div className="adm-grille">
+        <label>Le titre
+          <input value={c.invitation?.titre || ''}
+            onChange={(e) => setC((x) => ({ ...x, invitation: { ...(x.invitation || {}), titre: e.target.value } }))} />
+        </label>
+      </div>
+      <label className="adm-bloc">Le texte
+        <textarea rows={5} value={c.invitation?.texte || ''}
+          onChange={(e) => setC((x) => ({ ...x, invitation: { ...(x.invitation || {}), texte: e.target.value } }))} />
+      </label>
+
       <label className="adm-bloc">Les notes de refus des dossiers verrouillés <em>— une par ligne, tirée au hasard</em>
         <textarea rows={5} value={(c.refus || []).join('\n')}
           onChange={(e) => maj({ refus: e.target.value.split('\n').map((s) => s.trim()).filter(Boolean) })} />

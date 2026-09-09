@@ -6,7 +6,7 @@
 import { introuvable, json } from '@/lib/acces';
 import { etatTemps, maintenant, dossierDuJour, dossiersOuverts, minutesDepuis } from '@/lib/temps';
 import { lireConfig, lireEtat, lireDossier, muterEtat } from '@/lib/donnees';
-import { verifier, verifierDossier, verifierPasse } from '@/lib/reponses';
+import { normaliser, verifier, verifierDossier, verifierPasse } from '@/lib/reponses';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,8 +24,18 @@ export async function POST(req) {
   if (corps.quoi === 'code') {
     if (!e.jour?.dernier) return introuvable();
     const ok = normaliser(corps.saisie) === normaliser(cfg.codeFinal);
-    if (ok) await muterEtat((s) => ({ ...s, codeOk: true }));
-    return json({ ok });
+    if (!ok) return json({ ok: false });
+    await muterEtat((s) => ({ ...s, codeOk: true }));
+
+    /* La lettre part avec la réponse : la scène « L'acte s'imprime » la
+       tape ligne à ligne, et l'onglet la garde ensuite. */
+    const anos = Object.keys(etat.anomalies || {}).length;
+    const complete = anos >= (cfg.seuilAnomalies ?? 4);
+    return json({
+      ok: true,
+      texte: (complete && cfg.lettreFinaleAnomalies) ? cfg.lettreFinaleAnomalies : cfg.lettreFinale,
+      complete,
+    });
   }
 
   const slug = corps.slug;

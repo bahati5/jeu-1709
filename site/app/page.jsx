@@ -166,10 +166,24 @@ export default function Jeu() {
   const repondre = async (saisie) => {
     const r = await api('/api/verify', { slug: d.manche.slug, saisie });
     if (r.ok && !r.deja) {
-      jouer('reponse-juste', {
+      /* Le dernier jour, le descellement vient après le tampon : c'est la
+         scène qui dit que tout ce qui était fermé s'ouvre. */
+      const rang = (d.scelles?.pris || 0) + 1;
+      const total = d.scelles?.total;
+      const cat = d.catalogue || [];
+      const suite = [
+        ...sequencePour('reponse-juste', d.manche, cat, d.animations, d.vuesAnim)
+          .filter((x) => x.cle !== 'recompense' || Boolean(r.recompense?.nom)),
+        ...(d.jour?.dernier
+          ? sequencePour('verdict', d.manche, cat, d.animations, d.vuesAnim)
+          : []),
+      ];
+      setCtx({
+        titre: d.titre, date: d.jour?.date,
         recompense: r.recompense, minutes: r.minutes, chronoRef: r.chronoRef,
-        rang: (d.scelles?.pris || 0) + 1, total: d.scelles?.total,
+        rang, total,
       });
+      if (suite.length) setScenes(suite); else charger();
     } else if (!r.ok) {
       jouer('reponse-fausse');
     } else charger();
@@ -190,6 +204,15 @@ export default function Jeu() {
   };
 
   const assemblage = () => jouer('assemblage');
+
+  /* Le code du dernier jour. La lettre arrive avec la réponse : la scène
+     la tape ligne à ligne, l'onglet la garde ensuite. */
+  const code = async (saisie) => {
+    const r = await api('/api/verify', { quoi: 'code', saisie });
+    if (r.ok) jouer('code-juste', { texte: r.texte });
+    else jouer('reponse-fausse');
+    return r;
+  };
 
   const anomalie = async (saisie) => {
     const r = await api('/api/verify', { slug: d.manche.slug, quoi: 'anomalie', saisie });
@@ -220,6 +243,8 @@ export default function Jeu() {
                 )}
                 {onglet === 'tableau' && <Tableau d={d} />}
                 {onglet === 'fonds' && <Fonds d={d} />}
+                {onglet === 'enveloppe' && <Enveloppe d={d} onCode={code} />}
+                {onglet === 'invitation' && <Invitation d={d} />}
 
                 <nav className="onglets">
                   {ORDRE_ONGLETS.filter((o) => (d.onglets || []).includes(o)).map((o) => (
@@ -386,6 +411,77 @@ function Tableau({ d }) {
           </div>
         </>
       )}
+    </section>
+  );
+}
+
+/* L'enveloppe du dernier jour. Scellée tant que le code n'est pas juste —
+   et scellée pour de vrai : la lettre ne quitte pas le serveur avant. */
+function Enveloppe({ d, onCode }) {
+  const v = d.verdict || {};
+  const [code, setCode] = useState('');
+  const [refus, setRefus] = useState('');
+  const [envoi, setEnvoi] = useState(false);
+
+  const envoyer = async (e) => {
+    e.preventDefault();
+    if (!code.trim() || envoi) return;
+    setEnvoi(true); setRefus('');
+    try {
+      const r = await onCode(code.trim());
+      if (r?.ok) setCode(''); else setRefus('Ce n’est pas cette date-là.');
+    } finally { setEnvoi(false); }
+  };
+
+  if (v.codeOk) {
+    return (
+      <section className="lettre">
+        <h2>{v.titre}</h2>
+        <article className="lettre-p">
+          {String(v.lettre || '').split('\n').map((l, i) =>
+            l.trim() === '' ? <br key={i} /> : <p key={i}>{l}</p>)}
+        </article>
+        {v.anomaliesTrouvees > 0 && (
+          <p className="lettre-pied">
+            {v.anomaliesTrouvees} anomalie{v.anomaliesTrouvees > 1 ? 's' : ''} relevée
+            {v.anomaliesTrouvees > 1 ? 's' : ''}
+            {v.complete ? ' — vous aviez tout vu.' : '.'}
+          </p>
+        )}
+      </section>
+    );
+  }
+
+  return (
+    <section className="enveloppe">
+      <div className="env-cire" aria-hidden="true" />
+      <h2>{v.titre}</h2>
+      {v.invite && <p className="env-invite">{v.invite}</p>}
+      <form className="env-form" onSubmit={envoyer}>
+        <input className="champ" value={code} onChange={(e) => setCode(e.target.value)}
+          placeholder={v.placeholder || ''} inputMode="numeric" autoComplete="off"
+          autoCorrect="off" spellCheck={false} enterKeyHint="send"
+          aria-label="Le code" disabled={envoi} />
+        <button className="deposer" disabled={!code.trim() || envoi}>
+          {envoi ? '…' : 'Ouvrir'}
+        </button>
+      </form>
+      {refus && <p className="env-refus">{refus}</p>}
+    </section>
+  );
+}
+
+/* Ce qui vient après la lettre — elle l'ouvre depuis la console quand
+   elle veut, onglet « La partie ». */
+function Invitation({ d }) {
+  const i = d.invitation || {};
+  return (
+    <section className="lettre">
+      {i.titre && <h2>{i.titre}</h2>}
+      <article className="lettre-p">
+        {String(i.texte || '').split('\n').map((l, k) =>
+          l.trim() === '' ? <br key={k} /> : <p key={k}>{l}</p>)}
+      </article>
     </section>
   );
 }

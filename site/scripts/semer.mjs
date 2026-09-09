@@ -555,7 +555,9 @@ Un vendredi. En septembre 1999. Entre le 12 et le 19.`,
     'Un seul tombe entre le 12 et le 19.',
   ],
   recompense: { nom: '', precision: '', gag: false },
-  animations: { mode: 'toutes', sequence: ['descellement', 'tampon_ok', 'verdict_acte', 'recompense'] },
+  /* Le tampon, le huitième scellé, le chrono — puis le descellement, qui
+     vient de son propre déclencheur (`verdict`), pas d'ici. */
+  animations: { mode: 'toutes', sequence: ['tampon_ok', 'sceau', 'chrono', 'recompense'] },
 };
 
 /* ================================================================== */
