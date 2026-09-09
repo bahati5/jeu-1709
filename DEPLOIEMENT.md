@@ -57,13 +57,31 @@ aucune policy**.
 
 ### 1.3 Récupérer les deux valeurs
 
-**Project Settings** → **API** :
+**Project Settings** → **API Keys**. Tout est sur cette page — il n'y a plus
+de page *Settings → API* séparée.
 
 | Ce qu'il te faut | Où | À quoi ça ressemble |
 |---|---|---|
-| `SUPABASE_URL` | *Project URL* | `https://abcdefgh.supabase.co` |
-| `SUPABASE_SERVICE_ROLE_KEY` | *Project API keys* → **`service_role` / secret**, clique *Reveal* | `sb_secret_…` ou un long JWT `eyJ…` |
-| `SUPABASE_PUBLISHABLE_KEY` *(facultatif)* | *Project API keys* → **`anon` / publishable** | `sb_publishable_…` ou `eyJ…` |
+| `SUPABASE_URL` | *Project Settings → Data API → Project URL* | `https://abcdefgh.supabase.co` |
+| `SUPABASE_SERVICE_ROLE_KEY` | *API Keys* → **Secret key**, clique *Reveal* | `sb_secret_…` |
+| `SUPABASE_PUBLISHABLE_KEY` *(facultatif)* | *API Keys* → **Publishable key** | `sb_publishable_…` |
+
+> **Tu ne vois ni « publishable » ni « secret » ?** Ton projet est encore sur
+> les anciennes clés. Les deux systèmes cohabitent, et les anciennes marchent
+> exactement pareil :
+>
+> | Nouveau nom | Ancien nom | Ce que tu colles |
+> |---|---|---|
+> | Secret key `sb_secret_…` | **`service_role`** *(un long JWT `eyJ…`)* | `SUPABASE_SERVICE_ROLE_KEY` |
+> | Publishable key `sb_publishable_…` | **`anon` / public** *(un JWT `eyJ…`)* | `SUPABASE_PUBLISHABLE_KEY` |
+>
+> Prends celle qui existe chez toi, sans rien migrer. Supabase retire les
+> anciennes clés fin 2026 — bien après le 17 septembre.
+>
+> Et de toute façon : **`SUPABASE_PUBLISHABLE_KEY` est facultative.** Le jeu
+> n'en a pas besoin. Elle ne sert qu'à `npm run supabase`, qui essaie
+> vraiment de lire les tables avec elle pour te prouver que RLS tient. Sans
+> elle, le script fait ses autres contrôles et saute celui-là.
 
 > ⚠️ **La `service_role` est la clé qui ouvre tout.** Elle ne doit jamais
 > être préfixée `NEXT_PUBLIC_`, jamais apparaître dans le code, jamais être
@@ -77,17 +95,19 @@ aucune policy**.
 
 ## 2 · Les fichiers d'environnement
 
-### 2.1 Les deux jetons
+### 2.1 Le mot de passe de la console
 
-Il n'y a ni compte ni mot de passe : deux liens, deux cookies. Génère-les :
+**Le jeu est ouvert.** Pas de jeton, pas de lien à rallonge : l'adresse suffit,
+et elle ne sera partagée qu'à lui. Il n'y a rien à protéger devant — les
+réponses sont vérifiées côté serveur, et un dossier futur n'existe tout
+simplement pas.
 
-```bash
-node -e "console.log('JOUEUR_TOKEN=' + require('crypto').randomBytes(24).toString('hex'))"
-node -e "console.log('ADMIN_TOKEN='  + require('crypto').randomBytes(24).toString('hex'))"
-```
+**`/admin` est fermé par un mot de passe.** C'est le seul endroit où vivent
+les réponses des huit jours, les indices et les deux lettres du 17.
 
-48 caractères chacun. Si un jeton est refusé plus tard, c'est presque
-toujours une copie tronquée : recompte.
+Prends une **phrase longue**, pas un mot. Quatre mots sans rapport valent mieux
+qu'un mot compliqué : plus long à deviner, plus facile à taper sur un téléphone
+à 23h.
 
 ### 2.2 Écrire `.env.local`
 
@@ -98,8 +118,7 @@ cp .env.example .env.local
 Ouvre `.env.local` et remplis :
 
 ```
-JOUEUR_TOKEN=…
-ADMIN_TOKEN=…
+ADMIN_MDP=ta phrase longue à toi
 
 SUPABASE_URL=https://abcdefgh.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=sb_secret_…
@@ -232,16 +251,18 @@ Sur [vercel.com](https://vercel.com) → **Add New** → **Project** → choisis
 
 ### 4.3 Les variables d'environnement
 
-**Avant** de cliquer Deploy — *Environment Variables*, cinq lignes,
+**Avant** de cliquer Deploy — *Environment Variables*, quatre lignes,
 sur **Production** *et* **Preview** :
 
 ```
-JOUEUR_TOKEN                = …
-ADMIN_TOKEN                 = …
+ADMIN_MDP                   = ta phrase longue à toi
 SUPABASE_URL                = https://abcdefgh.supabase.co
 SUPABASE_SERVICE_ROLE_KEY   = sb_secret_…
 SUPABASE_BUCKET             = fonds47
 ```
+
+Sans `ADMIN_MDP`, `/admin` reste fermé — la console ne s'ouvre pas « par
+défaut », elle refuse. C'est voulu.
 
 **Ne mets pas `SIM_DATE`.** Il est ignoré en production, mais autant ne pas
 l'avoir là.
@@ -253,15 +274,19 @@ dans le navigateur.
 
 **Deploy**. Deux minutes. Tu obtiens `https://jeu-1709.vercel.app`.
 
-### 4.5 Les deux liens
+### 4.5 Les deux adresses
 
 ```
-Pour lui   https://jeu-1709.vercel.app/api/entrer?t=LE_JOUEUR_TOKEN
-Pour toi   https://jeu-1709.vercel.app/api/entrer?t=LE_ADMIN_TOKEN&vers=admin
+Pour lui   https://jeu-1709.vercel.app
+Pour toi   https://jeu-1709.vercel.app/admin
 ```
 
-Ouvre les deux **sur ton téléphone** avant de lui envoyer le sien. Le cookie
-tient 40 jours : il clique une fois, et ensuite `jeu-1709.vercel.app` suffit.
+C'est tout. Il ouvre le lien, il joue. Toi, tu tapes ton mot de passe une
+fois : le cookie tient 40 jours, et il porte l'empreinte du mot de passe,
+jamais le mot de passe lui-même.
+
+Ouvre les deux **sur ton téléphone** avant de lui envoyer le sien. Et si tu
+prêtes ton téléphone : le bouton **Se déconnecter** est en haut de la console.
 
 Dis-lui d'**ajouter le site à son écran d'accueil** (Safari → Partager →
 Sur l'écran d'accueil). Le manifeste est là, ça s'ouvre en plein écran, ça
@@ -271,8 +296,9 @@ ressemble à une app.
 
 ## 5 · Une fois en ligne — la liste de contrôle
 
-- [ ] Le lien joueur ouvre le jeu, l'écran d'accès puis l'introduction
-- [ ] Le lien admin ouvre `/admin` et la base est marquée **reliée**
+- [ ] L'adresse nue ouvre le jeu : écran d'accès, puis l'introduction
+- [ ] `/admin` demande le mot de passe, et le refuse s'il est faux
+- [ ] Une fois entrée, la base est marquée **reliée**
 - [ ] Une modification faite dans `/admin` **survit à un redéploiement**
       *(c'est le test qui prouve que Supabase est branché)*
 - [ ] Un dossier futur renvoie **404**, pas 403
@@ -304,12 +330,14 @@ blocage après trop de tentatives, voir la réponse, tout remettre à zéro.
 
 | Symptôme | Cause presque certaine |
 |---|---|
-| « Jeton refusé » avec un jeton de 47 caractères | copie tronquée, ou un `>>` a soudé deux lignes dans `.env.local` |
-| Le site s'ouvre mais `/admin` renvoie 404 | pas le bon jeton, ou `&vers=admin` oublié |
+| `/admin` refuse le mot de passe que tu sais juste | `ADMIN_MDP` diffère entre Vercel et ton `.env.local`, ou un espace s'est glissé au bout dans Vercel |
+| `/admin` dit « ADMIN_MDP n'est pas configuré » | la variable manque — ajoute-la, puis **redéploie** : une variable ajoutée après un déploiement ne s'applique qu'au suivant |
 | Les modifications d'`/admin` disparaissent | Supabase pas branché sur Vercel — les fichiers y sont éphémères |
 | `npm run verif` sort en erreur 1 | une réponse est partie dans le bundle : regarde le fichier qu'il nomme |
 | La clé publishable arrive à lire les tables | une policy RLS a été créée — supprime-la |
 | Build Vercel : « No Next.js version detected » | **Root Directory** n'est pas réglé sur `site` |
+| Page Vercel **404: NOT_FOUND**, `Code: NOT_FOUND`, un ID `cpt1::…` | Même cause. Ce 404-là vient de Vercel, pas du jeu : aucune route ne correspond, donc rien de Next n'a été construit. Vercel a pris la racine du dépôt, n'y a trouvé aucun `package.json`, l'a traité comme un site statique et a publié le README. **Settings → Build and Deployment → Root Directory → `site` → Redeploy.** |
+| Le jeu affiche **INTROUVABLE** en écriture dorée | `/api/etat` ne répond pas — regarde les logs de la fonction dans Vercel |
 | Les fontes s'affichent en Times | Google Fonts bloqué par le réseau — ce n'est pas le site |
 
 ---

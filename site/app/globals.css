@@ -440,3 +440,19 @@ body{margin:0;background:#08070a;-webkit-font-smoothing:antialiased}
 .rep-poignee{position:fixed;right:.7rem;bottom:5.2rem;z-index:50;background:rgba(8,7,10,.9);color:#c9922f;
   border:1px solid rgba(255,255,255,.14);padding:.4rem .8rem;font:10px/1 "IBM Plex Mono",monospace;
   letter-spacing:.16em;text-transform:uppercase;cursor:pointer}
+
+/* ---------- la porte de la console ---------- */
+.adm-porte{display:grid;place-items:center;min-height:100vh}
+.adm-connexion{width:min(24rem,88vw);background:rgba(255,255,255,.5);
+  border:1px solid var(--edge);padding:28px 24px 24px;display:flex;flex-direction:column;gap:12px}
+.adm-connexion h1{font-family:var(--fd);font-size:22px;letter-spacing:.14em;
+  text-transform:uppercase;margin:0;font-weight:600}
+.adm-connexion p{font-family:var(--fm);font-size:10px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--ink2);margin:0 0 6px}
+.adm-connexion input{font-family:var(--fm);font-size:16px;padding:11px 12px;
+  border:1px solid var(--edge);background:rgba(255,255,255,.7);color:var(--ink);width:100%}
+.adm-connexion button{min-height:46px}
+.adm-refus{font-family:var(--fm)!important;font-size:11px!important;color:var(--wax)!important;
+  text-transform:none!important;letter-spacing:0!important;line-height:1.6;margin:2px 0 0!important}
+.adm-sortir{font-family:var(--fm);font-size:9.5px!important;letter-spacing:.1em;
+  min-height:0!important;padding:4px 9px!important;color:var(--ink2)!important}

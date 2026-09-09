@@ -29,19 +29,21 @@ jeu-1709/
 ```bash
 cd site
 npm install
-cp .env.example .env.local     # puis remplis les jetons
+cp .env.example .env.local     # puis remplis ADMIN_MDP
 npm run dev                    # http://localhost:3000
 ```
 
-Deux liens, deux jetons :
+Deux adresses, une seule porte :
 
-| Qui | Lien |
-|---|---|
-| Lui | `https://…/api/entrer?t=$JOUEUR_TOKEN` |
-| Elle | `https://…/api/entrer?t=$ADMIN_TOKEN&vers=admin` |
+| Qui | Où | Comment |
+|---|---|---|
+| Lui | `https://…/` | rien à faire — le lien ne se partage qu'à lui |
+| Elle | `https://…/admin` | un mot de passe, `ADMIN_MDP` |
 
-Le lien pose un cookie httpOnly. En local l'accès joueur est ouvert ; le jeton
-n'est exigé qu'en production. `/admin` reste fermé partout.
+Le jeu est ouvert : les réponses ne sont vérifiées que côté serveur et un
+dossier futur n'existe pas, donc il n'y a rien à protéger devant. La console,
+elle, garde tout — elle demande le mot de passe et pose un cookie httpOnly de
+40 jours. Le cookie porte l'empreinte du mot de passe, jamais le mot de passe.
 
 ---
 
@@ -95,6 +97,8 @@ npm run supabase     # vérifie la connexion ET que RLS tient vraiment
 | **Les médias** | Téléverser les fichiers, les rattacher à un dossier. Un média rattaché renvoie 404 tant que son dossier n'est pas ouvert |
 | **Les règles** | Code final, paliers d'indices, tentatives, blocage, les deux lettres du dernier jour, les notes de refus |
 | **La partie** | Débloquer, reverrouiller, lever un blocage, remettre à zéro. Le filet de sécurité, utilisable depuis un téléphone |
+
+La console se ferme d'un bouton **Se déconnecter**, en haut à droite.
 
 **Ajouter un dossier ne demande aucun déploiement.** Le premier jour, seul le
 dossier du jour 1 doit exister : les suivants s'écrivent pendant la semaine.

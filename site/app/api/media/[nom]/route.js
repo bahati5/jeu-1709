@@ -5,7 +5,7 @@
  * Tout passe donc par ici, et un média dont le dossier n'est pas ouvert
  * renvoie 404 — jamais 403.
  */
-import { estJoueur, estAdmin, introuvable } from '@/lib/acces';
+import { estAdmin, introuvable } from '@/lib/acces';
 import { etatTemps, maintenant, dossiersOuverts } from '@/lib/temps';
 import { lireConfig, lireMedia } from '@/lib/donnees';
 
@@ -15,7 +15,6 @@ export async function GET(_req, { params }) {
   const { nom } = await params;
 
   const admin = await estAdmin();
-  if (!admin && !(await estJoueur())) return introuvable();
 
   const m = await lireMedia(nom);
   if (!m) return introuvable();

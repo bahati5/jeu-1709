@@ -1,10 +1,19 @@
+/* Qui a le droit de quoi.
+ *
+ * Le jeu est ouvert : le lien ne sera partagé qu'à lui, et rien de secret
+ * ne transite par le client de toute façon (les réponses sont vérifiées
+ * côté serveur, les dossiers futurs n'existent pas).
+ *
+ * La console, elle, est fermée par un mot de passe — c'est le seul endroit
+ * où vivent les réponses, les indices et les lettres du 17.
+ */
+import { createHash } from 'node:crypto';
 import { cookies } from 'next/headers';
 
-export const COOKIE_JOUEUR = 'd1709_j';
 export const COOKIE_ADMIN = 'd1709_a';
 
 /** Comparaison à durée constante, pour ne rien apprendre au chronomètre. */
-function egal(a, b) {
+export function egal(a, b) {
   a = String(a || ''); b = String(b || '');
   if (a.length !== b.length) return false;
   let d = 0;
@@ -12,22 +21,22 @@ function egal(a, b) {
   return d === 0;
 }
 
-export async function estJoueur() {
-  /* En local, l'accès est ouvert : se battre avec un cookie sur localhost
-     ne protège rien et fait perdre des soirées. Le jeton reste obligatoire
-     en production, et `scripts/test-http.sh` vérifie le mécanisme sur /admin. */
-  if (process.env.NODE_ENV !== 'production') return true;
-  const attendu = process.env.JOUEUR_TOKEN;
-  if (!attendu) return false; // en production, pas de jeton configuré = fermé
-  const c = await cookies();
-  return egal(c.get(COOKIE_JOUEUR)?.value, attendu);
-}
+/* Le cookie ne porte pas le mot de passe : il porte son empreinte. Un cookie
+   lu par-dessus l'épaule ne rend donc pas le mot de passe lui-même. */
+export const sceau = (mdp) =>
+  createHash('sha256').update(`1709:${mdp}`).digest('hex');
+
+/** Le mot de passe attendu, s'il est configuré. */
+export const mdpConfigure = () => Boolean(process.env.ADMIN_MDP);
+
+/** Le mot de passe saisi est-il le bon ? */
+export const mdpJuste = (saisi) =>
+  mdpConfigure() && egal(String(saisi || ''), process.env.ADMIN_MDP);
 
 export async function estAdmin() {
-  const attendu = process.env.ADMIN_TOKEN;
-  if (!attendu) return false;
+  if (!mdpConfigure()) return false;   // pas de mot de passe = console fermée
   const c = await cookies();
-  return egal(c.get(COOKIE_ADMIN)?.value, attendu);
+  return egal(c.get(COOKIE_ADMIN)?.value, sceau(process.env.ADMIN_MDP));
 }
 
 /** 404 partout, jamais 403 : un 403 confirme qu'il y a quelque chose derrière. */

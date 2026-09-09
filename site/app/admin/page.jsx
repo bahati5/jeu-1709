@@ -16,6 +16,46 @@ const poster = async (corps) => {
   return r.json();
 };
 
+/* La porte. Un mot de passe, rien d'autre : une seule personne s'en sert. */
+function Connexion({ onEntre }) {
+  const [mdp, setMdp] = useState('');
+  const [refus, setRefus] = useState('');
+  const [attend, setAttend] = useState(false);
+
+  const entrer = async (e) => {
+    e.preventDefault();
+    if (!mdp || attend) return;
+    setAttend(true); setRefus('');
+    const r = await fetch('/api/connexion', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mdp }),
+    }).then((x) => x.json()).catch(() => ({}));
+    setAttend(false);
+    if (r.ok) { setMdp(''); onEntre(); return; }
+    setMdp('');
+    setRefus(r.pasConfigure
+      ? "ADMIN_MDP n'est pas configuré. Ajoute-le dans .env.local (ou dans Vercel) et relance."
+      : 'Ce n’est pas le bon.');
+  };
+
+  return (
+    <main className="adm adm-porte">
+      <form className="adm-connexion" onSubmit={entrer}>
+        <h1>La console</h1>
+        <p>Réservée au greffe.</p>
+        <input type="password" value={mdp} onChange={(e) => setMdp(e.target.value)}
+          placeholder="mot de passe" autoFocus autoComplete="current-password"
+          aria-label="mot de passe" />
+        <button className="adm-primaire" disabled={!mdp || attend}>
+          {attend ? '…' : 'Entrer'}
+        </button>
+        {refus && <p className="adm-refus">{refus}</p>}
+      </form>
+    </main>
+  );
+}
+
 const DOSSIER_VIDE = {
   slug: '', titre: '', genre: '', type: 'saisie', actif: true, ordre: 0,
   payload: {}, solution: { reponses: [], resultat: '' }, indices: [],
@@ -27,6 +67,7 @@ const DOSSIER_VIDE = {
 
 export default function Console() {
   const [d, setD] = useState(null);
+  const [ferme, setFerme] = useState(false);
   const [err, setErr] = useState('');
   const [onglet, setOnglet] = useState('dossiers');
   const [edite, setEdite] = useState(null);
@@ -34,7 +75,9 @@ export default function Console() {
 
   const charger = useCallback(async () => {
     const r = await fetch('/api/admin', { cache: 'no-store' });
-    if (!r.ok) { setErr('Accès refusé. Passe par le lien à jeton.'); return; }
+    if (r.status === 404) { setFerme(true); setD(null); return; }
+    if (!r.ok) { setErr('La console ne répond pas.'); return; }
+    setFerme(false);
     setD(await r.json());
   }, []);
 
@@ -42,6 +85,7 @@ export default function Console() {
 
   const flash = (t) => { setMsg(t); setTimeout(() => setMsg(''), 2200); };
 
+  if (ferme) return <Connexion onEntre={charger} />;
   if (err) return <main className="adm"><p className="adm-err">{err}</p></main>;
   if (!d) return <main className="adm"><p>…</p></main>;
 
@@ -61,6 +105,10 @@ export default function Console() {
       <header className="adm-tete">
         <h1>{d.config.titre || 'Console'}</h1>
         <div className="adm-etat">
+          <button className="adm-sortir" onClick={async () => {
+            await fetch('/api/connexion', { method: 'DELETE' });
+            setFerme(true); setD(null);
+          }}>Se déconnecter</button>
           <span className={`adm-pastille ${d.pilote === 'supabase' ? 'ok' : 'attention'}`}>
             {d.pilote === 'supabase' ? 'Supabase' : 'fichier local'}
           </span>

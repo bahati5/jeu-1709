@@ -4,7 +4,7 @@
  * n'existe pas pour lui : les dossiers futurs, les réponses, les récompenses
  * non gagnées, les anomalies non trouvées.
  */
-import { estJoueur, estAdmin, introuvable, json } from '@/lib/acces';
+import { estAdmin, json } from '@/lib/acces';
 import { etatTemps, maintenant, ongletsOuverts, verdictOuvert, indicesDepuis, minutesDepuis } from '@/lib/temps';
 import { lireConfig, lireEtat, lireDossier, listerAnimations, amorcerAnimations } from '@/lib/donnees';
 import { versClient } from '@/lib/types';
@@ -12,8 +12,6 @@ import { versClient } from '@/lib/types';
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  if (!(await estJoueur())) return introuvable();
-
   const cfg = await lireConfig();
   const etat = await lireEtat();
   const e = etatTemps(cfg, maintenant());

@@ -1,14 +1,13 @@
 /* Le joueur ouvre la manche du jour : le chrono part, et c'est de cet
    instant — pas de l'aube — que se comptent les indices. Compter depuis
    l'aube les rendrait tous disponibles avant son réveil. */
-import { estJoueur, introuvable, json } from '@/lib/acces';
+import { introuvable, json } from '@/lib/acces';
 import { etatTemps, maintenant, dossierDuJour } from '@/lib/temps';
 import { lireConfig, lireEtat, muterEtat } from '@/lib/donnees';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(req) {
-  if (!(await estJoueur())) return introuvable();
 
   let corps = {};
   try { corps = await req.json(); } catch { return introuvable(); }
@@ -27,7 +26,6 @@ export async function POST(req) {
 
 /** Compte une scène vue, pour la version courte à partir de la Nième fois. */
 export async function PATCH(req) {
-  if (!(await estJoueur())) return introuvable();
   let corps = {};
   try { corps = await req.json(); } catch { return introuvable(); }
   const cles = Array.isArray(corps.scenes) ? corps.scenes.slice(0, 20) : [];

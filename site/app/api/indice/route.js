@@ -7,14 +7,13 @@
  * Les paliers — en minutes depuis l'ouverture de la manche — se règlent
  * depuis /admin → Les règles.
  */
-import { estJoueur, introuvable, json } from '@/lib/acces';
+import { introuvable, json } from '@/lib/acces';
 import { etatTemps, maintenant, dossierDuJour, indicesDepuis, minutesDepuis } from '@/lib/temps';
 import { lireConfig, lireEtat, lireDossier, muterEtat } from '@/lib/donnees';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(req) {
-  if (!(await estJoueur())) return introuvable();
 
   let corps = {};
   try { corps = await req.json(); } catch { return introuvable(); }

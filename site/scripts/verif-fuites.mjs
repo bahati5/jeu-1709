@@ -49,7 +49,7 @@ ajouter(cfg.lettreFinale, 'lettre du 17');
 ajouter(cfg.lettreFinaleAnomalies, 'lettre du 17 (variante)');
 
 /* Les variables d'environnement sensibles, tant qu'à faire. */
-for (const c of ['SUPABASE_SERVICE_ROLE_KEY', 'ADMIN_TOKEN', 'JOUEUR_TOKEN']) {
+for (const c of ['SUPABASE_SERVICE_ROLE_KEY', 'ADMIN_MDP']) {
   if (process.env[c]) secrets.set(process.env[c], `variable ${c}`);
 }
 

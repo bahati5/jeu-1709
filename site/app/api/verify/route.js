@@ -3,7 +3,7 @@
  * Rien ne sort d'ici que `ok`, et ce qui devient légitimement visible
  * une fois la manche gagnée.
  */
-import { estJoueur, introuvable, json } from '@/lib/acces';
+import { introuvable, json } from '@/lib/acces';
 import { etatTemps, maintenant, dossierDuJour, dossiersOuverts, minutesDepuis } from '@/lib/temps';
 import { lireConfig, lireEtat, lireDossier, muterEtat } from '@/lib/donnees';
 import { verifier, verifierPasse, normaliser } from '@/lib/reponses';
@@ -11,7 +11,6 @@ import { verifier, verifierPasse, normaliser } from '@/lib/reponses';
 export const dynamic = 'force-dynamic';
 
 export async function POST(req) {
-  if (!(await estJoueur())) return introuvable();
 
   let corps = {};
   try { corps = await req.json(); } catch { return introuvable(); }
