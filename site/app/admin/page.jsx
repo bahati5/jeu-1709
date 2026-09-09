@@ -365,6 +365,14 @@ function Editeur({ d, valeur, fermer, enregistrer }) {
       </div>
 
       <h3>La récompense <em>— n'existe qu'à l'instant de la victoire</em></h3>
+      {!v.recompense?.nom && (
+        <p className="adm-alerte">
+          <strong>Sans nom, la carte cachetée ne se joue pas.</strong> C'est
+          voulu — une carte vide ferait deux secondes d'écran noir au moment
+          où il vient de gagner. Écris un nom ici et la scène apparaît, elle
+          n'a rien d'autre à activer.
+        </p>
+      )}
       <div className="adm-grille">
         <label>Nom
           <input value={v.recompense?.nom || ''} onChange={(e) => maj({ recompense: { ...v.recompense, nom: e.target.value } })} />

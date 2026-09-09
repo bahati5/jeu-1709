@@ -52,8 +52,9 @@ export const CONFIG_DEFAUT = {
   tentativesMax: 5,
   blocageMinutes: 10,
 
-  /* Le fonds : 47 dossiers dont 7 ouverts, 1 scellé, le reste verrouillé */
-  tailleFonds: 47,
+  /* La grille de la vue « le fonds » : autant de cases que de jours, par
+     défaut. Mets-en plus si tu veux un fonds plus grand que la partie. */
+  tailleFonds: 8,
   refus: [],              // les notes de refus des dossiers verrouillés
 
   /* Le final — tout se saisit depuis /admin. */

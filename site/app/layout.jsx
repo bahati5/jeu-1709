@@ -1,12 +1,19 @@
 import './globals.css';
 
-export const metadata = {
-  title: 'Dossier 1709/26',
-  description: 'Parquet — mairie centrale',
-  robots: { index: false, follow: false },
-};
+/* Le nom vit en base, pas ici : l'onglet du navigateur et l'icône sur
+   l'écran d'accueil affichent ce qui est saisi dans /admin. */
+export async function generateMetadata() {
+  const { lireConfig } = await import('@/lib/donnees');
+  let titre = 'Dossier';
+  try { titre = (await lireConfig()).titre || titre; } catch { /* base absente */ }
+  return {
+    title: titre,
+    description: '',
+    robots: { index: false, follow: false },
+  };
+}
 export const viewport = {
-  width: 'device-width', initialScale: 1, viewportFit: 'cover', themeColor: '#091512',
+  width: 'device-width', initialScale: 1, viewportFit: 'cover',
 };
 
 export default function RootLayout({ children }) {
@@ -19,7 +26,6 @@ export default function RootLayout({ children }) {
           rel="stylesheet"
           href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Spectral:ital,wght@0,400;0,600;1,400&family=Special+Elite&family=Lora:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap"
         />
-        <link rel="manifest" href="/manifest.webmanifest" />
       </head>
       <body>
         {/* Les filtres qui donnent au papier ses bords déchirés et à l'encre sa bavure. */}

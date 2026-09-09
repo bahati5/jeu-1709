@@ -323,7 +323,8 @@ function Intro({ intro, surtitre, onFini }) {
 function Attente({ d }) {
   return (
     <section className="attente">
-      <div className="cire">47</div>
+      {/* Ce qui est gravé dans la cire : la cote, saisie dans la console. */}
+      <div className="cire">{d.cote || ''}</div>
       {d.surtitre && <p className="surtitre">{d.surtitre}</p>}
       <h2 className="titre">{d.attente?.titre || d.titre}</h2>
       {d.attente?.texte && <p>{d.attente.texte}</p>}
@@ -487,7 +488,7 @@ function Invitation({ d }) {
 }
 
 function Fonds({ d }) {
-  const total = d.tailleFonds || 47;
+  const total = d.tailleFonds || 8;
   const pris = d.scelles?.pris || 0;
   return (
     <section className="fonds">
