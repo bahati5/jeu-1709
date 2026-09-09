@@ -1,8 +1,14 @@
-/* La barre de répétition — réservée au cookie admin.
+/* Le banc d'essai — réservé au cookie admin.
  *
- * Elle sert à parcourir les huit jours d'affilée, sans attendre les
- * paliers d'indices ni le lendemain. Elle n'est jamais servie au joueur :
- * `estAdmin()` la garde, et un cookie joueur ne l'ouvre pas.
+ * Il sert à parcourir les huit jours d'affilée, en ligne, sans attendre les
+ * paliers d'indices ni le lendemain. Il n'est jamais servi au joueur :
+ * `estAdmin()` le garde, et lui n'a pas ce cookie.
+ *
+ * La règle qui compte : ENTRER dans le banc d'essai met les vraies dates et
+ * les vrais paliers de côté, dans l'état du jeu. EN SORTIR les remet
+ * exactement comme ils étaient et efface la partie de test. Tant qu'on n'est
+ * pas entré, `jour` et `paliers` refusent d'agir — pour qu'un doigt qui
+ * glisse ne décale pas le calendrier de la vraie partie.
  */
 import { estAdmin, introuvable, json } from '@/lib/acces';
 import { lireConfig, ecrireConfig, lireEtat, ecrireEtat, muterEtat, ETAT_INITIAL, lireDossier }
@@ -24,9 +30,48 @@ export async function POST(req) {
   const e = etatTemps(cfg, maintenant());
   const n = (cfg.programme || []).length || 8;
 
+  const etat = await lireEtat();
+  const essai = etat.essai?.actif ? etat.essai : null;
+
+  /* Ce qu'il faut avoir mis de côté avant de toucher au calendrier. */
+  const aGarder = (k) => ({
+    debut: k.debut, fin: k.fin,
+    heureOuverture: k.heureOuverture, heureVerdict: k.heureVerdict,
+    paliers: k.paliers,
+  });
+
   switch (c.action) {
+    /* --- Entrer dans le banc d'essai --- */
+    case 'essai.debut': {
+      if (essai) return json({ ok: true, essai, deja: true });
+      const garde = aGarder(cfg);
+      const nouvel = await muterEtat(() => ({
+        ...ETAT_INITIAL,
+        essai: { actif: true, depuis: new Date().toISOString(), config: garde },
+      }));
+      /* Jour 1, bascule à minuit, indices tout de suite. */
+      const aujourd = new Intl.DateTimeFormat('en-CA', {
+        timeZone: cfg.fuseau, year: 'numeric', month: '2-digit', day: '2-digit',
+      }).format(new Date());
+      await ecrireConfig({
+        debut: aujourd,
+        fin: iso(Date.parse(`${aujourd}T00:00:00Z`) + (n - 1) * JOUR_MS),
+        heureOuverture: 0, heureVerdict: 0,
+        paliers: (cfg.paliers || []).map(() => 0),
+      });
+      return json({ ok: true, essai: nouvel.essai, jour: 1 });
+    }
+
+    /* --- En sortir : tout remettre comme avant, et effacer la partie d'essai --- */
+    case 'essai.fin': {
+      if (essai?.config) await ecrireConfig(essai.config);
+      await ecrireEtat({ ...ETAT_INITIAL });
+      return json({ ok: true, rendu: essai?.config || null });
+    }
+
     /* --- Se placer sur un jour donné, aujourd'hui, horloge réelle --- */
     case 'jour': {
+      if (!essai) return json({ ok: false, horsEssai: true }, 409);
       const vise = Math.max(1, Math.min(n, Number(c.jour) || 1));
       const aujourd = new Intl.DateTimeFormat('en-CA', {
         timeZone: cfg.fuseau, year: 'numeric', month: '2-digit', day: '2-digit',
@@ -42,9 +87,12 @@ export async function POST(req) {
 
     /* --- Indices demandables tout de suite, ou paliers rétablis --- */
     case 'paliers': {
-      const zero = c.zero !== false;
-      await ecrireConfig({ paliers: zero ? [0, 0, 0] : [60, 120, 180] });
-      return json({ ok: true, paliers: zero ? [0, 0, 0] : [60, 120, 180] });
+      if (!essai) return json({ ok: false, horsEssai: true }, 409);
+      /* « Rétablir » veut dire : tes paliers à toi, pas des valeurs en dur. */
+      const vrais = essai.config?.paliers?.length ? essai.config.paliers : [60, 120, 180];
+      const paliers = c.zero !== false ? vrais.map(() => 0) : vrais;
+      await ecrireConfig({ paliers });
+      return json({ ok: true, paliers });
     }
 
     /* --- Rejouer les scènes en pleine longueur --- */
@@ -66,9 +114,10 @@ export async function POST(req) {
       }) });
     }
 
-    /* --- Tout remettre à zéro, contenu conservé --- */
+    /* --- Tout remettre à zéro, contenu conservé. On reste dans le banc
+           d'essai si on y était : sortir, c'est `essai.fin`. --- */
     case 'raz':
-      await ecrireEtat({ ...ETAT_INITIAL });
+      await ecrireEtat({ ...ETAT_INITIAL, ...(essai ? { essai } : {}) });
       return json({ ok: true });
 
     /* --- La réponse attendue, pour ne pas résoudre huit énigmes à la main --- */

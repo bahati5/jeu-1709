@@ -456,3 +456,21 @@ body{margin:0;background:#08070a;-webkit-font-smoothing:antialiased}
   text-transform:none!important;letter-spacing:0!important;line-height:1.6;margin:2px 0 0!important}
 .adm-sortir{font-family:var(--fm);font-size:9.5px!important;letter-spacing:.1em;
   min-height:0!important;padding:4px 9px!important;color:var(--ink2)!important}
+
+/* ---------- le banc d'essai ---------- */
+.adm-essai{background:rgba(139,42,33,.1);border:1px solid var(--wax);border-left-width:3px;
+  padding:11px 14px;margin:14px 0;font-size:13px;line-height:1.65;display:flex;
+  flex-wrap:wrap;gap:8px;align-items:center}
+.adm-essai strong{color:var(--wax)}
+.adm-essai em{font-style:italic}
+.adm-essai button{margin-left:auto;min-height:34px!important;padding:0 11px!important;
+  border-color:var(--wax)!important;color:var(--wax)!important;background:rgba(255,255,255,.5)!important}
+.adm-jours{display:flex;flex-wrap:wrap;gap:5px;margin:8px 0}
+.adm-jours button{min-width:44px;text-align:center}
+.adm-reponse{background:rgba(255,255,255,.55);border-left:2px solid var(--wax);
+  padding:11px 14px;margin:10px 0}
+.adm-reponse p{margin:.2rem 0;font-family:var(--fm);font-size:12px;word-break:break-word}
+.adm-reponse span{display:inline-block;min-width:9rem;color:var(--ink2)}
+.rep-hors{margin:0 0 .5rem;color:#c8bfa8;font-size:11px;line-height:1.5;
+  background:rgba(201,146,47,.12);border-left:2px solid #c9922f;padding:.4rem .55rem}
+.rep-hors a{color:#e8c078}

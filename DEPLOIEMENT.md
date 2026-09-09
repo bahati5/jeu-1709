@@ -294,6 +294,39 @@ ressemble à une app.
 
 ---
 
+## 4.6 · Répéter en ligne — le banc d'essai
+
+Avant de lui envoyer le lien, tu veux jouer les huit énigmes toi-même, sur le
+vrai site, depuis ton téléphone. `SIM_DATE` ne sert à rien ici : il est ignoré
+en production, exprès — la simulation ne doit pas pouvoir servir à tricher.
+
+C'est `/admin` → **Le banc d'essai** qui fait ça.
+
+**En entrant**, il met de côté tes dates et tes paliers, remet la partie à zéro
+et te place au jour 1, indices demandables tout de suite. Tu sautes de jour en
+jour, tu rejoues une manche, tu revois une scène en entier, et tu peux afficher
+la réponse du jour pour ne pas résoudre huit énigmes à la main.
+
+**En sortant**, il remet *exactement* ce qu'il avait mis de côté — mêmes dates,
+même heure de bascule, mêmes paliers — et efface toute la partie d'essai.
+
+Deux garde-fous, parce que c'est le genre de chose qu'on oublie :
+
+- tant que le banc d'essai tourne, **un bandeau rouge reste en haut de la
+  console**, avec le bouton pour en sortir ;
+- **hors banc d'essai, changer de jour est refusé.** Un doigt qui glisse ne
+  peut pas décaler le calendrier de la vraie partie.
+
+La petite barre flottante en bas à droite du jeu fait la même chose, sans
+quitter la partie. Elle n'existe que pour le cookie admin : lui ne la verra
+jamais, il n'y a rien à penser à éteindre.
+
+> **La dernière chose à faire avant d'envoyer le lien** : sortir du banc
+> d'essai. Le bandeau disparaît, les vraies dates reviennent, la partie est
+> vierge.
+
+---
+
 ## 5 · Une fois en ligne — la liste de contrôle
 
 - [ ] L'adresse nue ouvre le jeu : écran d'accès, puis l'introduction
@@ -304,6 +337,7 @@ ressemble à une app.
 - [ ] Un dossier futur renvoie **404**, pas 403
 - [ ] `npm run verif` passe sur le build de production
 - [ ] Les 8 récompenses sont écrites
+- [ ] **Le banc d'essai est refermé** — pas de bandeau rouge dans la console
 - [ ] Le dépôt GitHub est **privé**
 
 ---

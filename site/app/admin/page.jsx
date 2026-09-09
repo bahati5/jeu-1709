@@ -124,6 +124,7 @@ export default function Console() {
     ['medias', 'Les médias'],
     ['regles', 'Les règles'],
     ['partie', 'La partie'],
+    ['essai', "Le banc d'essai"],
   ];
 
   return (
@@ -157,6 +158,14 @@ export default function Console() {
         ))}
       </nav>
 
+      {d.etat?.essai?.actif && (
+        <p className="adm-essai">
+          <strong>Banc d'essai en cours.</strong> Les dates et les paliers de la vraie
+          partie sont mis de côté. <em>Ne lui envoie pas le lien maintenant.</em>
+          <button onClick={() => setOnglet('essai')}>En sortir</button>
+        </p>
+      )}
+
       {msg && <p className="adm-msg">{msg}</p>}
 
       {onglet === 'dossiers' && (
@@ -169,6 +178,7 @@ export default function Console() {
       {onglet === 'medias' && <Medias d={d} recharger={charger} flash={flash} />}
       {onglet === 'regles' && <Regles d={d} recharger={charger} flash={flash} />}
       {onglet === 'partie' && <Partie d={d} recharger={charger} flash={flash} />}
+      {onglet === 'essai' && <Essai d={d} recharger={charger} flash={flash} />}
     </main>
   );
 }
@@ -478,6 +488,131 @@ function Programme({ d, recharger, flash }) {
       <button className="adm-primaire" onClick={async () => {
         await poster({ action: 'config', config: { programme: prog } }); recharger(); flash('Programme enregistré');
       }}>Enregistrer le programme</button>
+    </section>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+
+/* Le banc d'essai : jouer les huit jours d'affilée, en ligne, puis tout
+   remettre exactement comme c'était avant de lui envoyer le lien. */
+function Essai({ d, recharger, flash }) {
+  const [reponse, setReponse] = useState(null);
+  const [occupe, setOccupe] = useState(false);
+  const essai = d.etat?.essai?.actif ? d.etat.essai : null;
+  const jours = d.temps?.jours || [];
+  const jour = (d.temps?.jour?.index ?? 0) + 1;
+  const total = jours.length || 8;
+
+  const act = async (corps) => {
+    setOccupe(true);
+    const r = await fetch('/api/repetition', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(corps),
+    }).then((x) => x.json()).catch(() => ({}));
+    await recharger();
+    setOccupe(false);
+    return r;
+  };
+
+  if (!essai) {
+    return (
+      <section>
+        <h3>Le banc d'essai</h3>
+        <p className="adm-aide">
+          Pour jouer les huit énigmes d'affilée sur le site en ligne, depuis ton
+          téléphone, sans attendre huit jours ni les paliers d'indices.
+        </p>
+        <p className="adm-aide">
+          En entrant, les dates et les paliers d'aujourd'hui sont <strong>mis de côté</strong>,
+          la partie est remise à zéro, et tu es placée au jour 1 avec les indices
+          disponibles tout de suite. En sortant, tout est remis{' '}
+          <strong>exactement</strong> comme c'est maintenant : mêmes dates,
+          mêmes paliers, partie vierge.
+        </p>
+        <p className="adm-aide">
+          <em>À faire avant de lui envoyer le lien</em> — et le bouton de sortie est
+          là pour ça, tu ne peux pas l'oublier : un bandeau rouge reste en haut de
+          la console tant que le banc d'essai tourne.
+        </p>
+        <div className="adm-barre">
+          <button className="adm-primaire" disabled={occupe} onClick={async () => {
+            await act({ action: 'essai.debut' }); flash('Banc d’essai ouvert — jour 1');
+          }}>Ouvrir le banc d'essai</button>
+        </div>
+        <h4>Ce qui sera mis de côté</h4>
+        <p className="adm-aide">
+          Du <code>{d.config.debut}</code> au <code>{d.config.fin}</code>, bascule à{' '}
+          <code>{d.config.heureOuverture}h</code>, indices à{' '}
+          <code>{(d.config.paliers || []).join(', ') || '—'}</code> min.
+        </p>
+      </section>
+    );
+  }
+
+  const c = essai.config || {};
+  return (
+    <section>
+      <h3>Le banc d'essai <em>— en cours</em></h3>
+
+      <h4>Le jour</h4>
+      <div className="adm-jours">
+        {Array.from({ length: total }, (_, i) => (
+          <button key={i} className={jour === i + 1 ? 'adm-primaire' : ''} disabled={occupe}
+            onClick={() => act({ action: 'jour', jour: i + 1 })}>{i + 1}</button>
+        ))}
+      </div>
+      <p className="adm-aide">
+        Jour {jour} sur {total}
+        {jours[jour - 1]?.dossier && <> · <code>{jours[jour - 1].dossier}</code></>}
+      </p>
+
+      <h4>La manche</h4>
+      <div className="adm-barre">
+        <button disabled={occupe} onClick={async () => { await act({ action: 'manche.raz' }); flash('Manche remise à zéro'); }}>
+          Rejouer ce jour
+        </button>
+        <button disabled={occupe} onClick={async () => { await act({ action: 'scenes.oublier' }); flash('Scènes en entier'); }}>
+          Rejouer les scènes en entier
+        </button>
+        <button disabled={occupe} onClick={async () => setReponse(await act({ action: 'reponse' }))}>
+          Voir la réponse du jour
+        </button>
+      </div>
+
+      {reponse?.ok && (
+        <div className="adm-reponse">
+          {reponse.passe && <p><span>phrase de passe</span> {reponse.passe}</p>}
+          <p><span>réponse</span> {reponse.reponse}</p>
+          {reponse.anomalie && <p><span>anomalie</span> {reponse.anomalie}</p>}
+        </div>
+      )}
+
+      <h4>Les indices</h4>
+      <div className="adm-barre">
+        <button disabled={occupe} onClick={async () => { await act({ action: 'paliers', zero: true }); flash('Indices demandables tout de suite'); }}>
+          Sans attendre
+        </button>
+        <button disabled={occupe} onClick={async () => { await act({ action: 'paliers', zero: false }); flash('Paliers rétablis'); }}>
+          Rétablir tes paliers
+        </button>
+        <span className="adm-compte">actuellement : {(d.config.paliers || []).join(', ')} min</span>
+      </div>
+
+      <h3>En sortir</h3>
+      <p className="adm-aide">
+        Remet le calendrier du <code>{c.debut}</code> au <code>{c.fin}</code>, bascule à{' '}
+        <code>{c.heureOuverture}h</code>, indices à <code>{(c.paliers || []).join(', ')}</code> min,
+        et efface toute la partie d'essai. C'est ce qu'il faut faire juste avant
+        de lui envoyer le lien.
+      </p>
+      <div className="adm-barre">
+        <button className="adm-danger" disabled={occupe} onClick={async () => {
+          if (!confirm('Sortir du banc d’essai, remettre les vraies dates et effacer la partie d’essai ?')) return;
+          await act({ action: 'essai.fin' });
+          flash('Tout est remis en place. Le jeu est prêt.');
+        }}>Sortir et tout remettre en place</button>
+      </div>
     </section>
   );
 }

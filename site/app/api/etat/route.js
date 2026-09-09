@@ -38,8 +38,8 @@ export async function GET() {
     tailleFonds: cfg.tailleFonds,
     animations: cfg.animations,
     vuesAnim: etat.vuesAnim || {},
-    /* Les paliers ne servent qu'à la barre de répétition — elle seule. */
-    ...(repetition ? { paliers: cfg.paliers } : {}),
+    /* Les paliers et le banc d'essai ne servent qu'à elle — jamais à lui. */
+    ...(repetition ? { paliers: cfg.paliers, essai: etat.essai?.actif ? etat.essai : null } : {}),
   };
 
   /* Avant l'ouverture : un sceau et un compte à rebours. Rien d'autre. */

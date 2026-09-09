@@ -413,25 +413,32 @@ function Repetition({ d, recharger, jouerScene }) {
   return (
     <aside className="rep">
       <div className="rep-tete">
-        <strong>Répétition</strong>
+        <strong>{d.essai ? 'Banc d’essai' : 'Répétition'}</strong>
         <button onClick={() => setOuvert(false)} aria-label="replier">−</button>
       </div>
 
+      {!d.essai && (
+        <p className="rep-hors">
+          Hors banc d’essai : le jour et les paliers ne bougent pas.
+          Ouvre-le depuis <a href="/admin">la console</a>.
+        </p>
+      )}
+
       <div className="rep-ligne">
-        <button disabled={jour <= 1} onClick={() => act({ action: 'jour', jour: jour - 1 })}>◀</button>
+        <button disabled={!d.essai || jour <= 1} onClick={() => act({ action: 'jour', jour: jour - 1 })}>◀</button>
         <span className="rep-jour">jour {jour} / {total}</span>
-        <button disabled={jour >= total} onClick={() => act({ action: 'jour', jour: jour + 1 })}>▶</button>
+        <button disabled={!d.essai || jour >= total} onClick={() => act({ action: 'jour', jour: jour + 1 })}>▶</button>
       </div>
       <div className="rep-ligne rep-sauts">
         {Array.from({ length: total }, (_, i) => (
-          <button key={i} className={jour === i + 1 ? 'on' : ''}
+          <button key={i} className={jour === i + 1 ? 'on' : ''} disabled={!d.essai}
             onClick={() => act({ action: 'jour', jour: i + 1 })}>{i + 1}</button>
         ))}
       </div>
 
       <div className="rep-ligne">
         <label className="rep-case">
-          <input type="checkbox" checked={rapide}
+          <input type="checkbox" checked={rapide} disabled={!d.essai}
             onChange={async (e) => {
               setRapide(e.target.checked);
               await act({ action: 'paliers', zero: e.target.checked });
