@@ -8,7 +8,7 @@
  * depuis /admin → Les règles.
  */
 import { introuvable, json } from '@/lib/acces';
-import { etatTemps, maintenant, dossierDuJour, indicesDepuis, minutesDepuis } from '@/lib/temps';
+import { etatTemps, maintenant, manchePermise, indicesDepuis, minutesDepuis } from '@/lib/temps';
 import { lireConfig, lireEtat, lireDossier, muterEtat } from '@/lib/donnees';
 
 export const dynamic = 'force-dynamic';
@@ -20,12 +20,12 @@ export async function POST(req) {
 
   const cfg = await lireConfig();
   const e = etatTemps(cfg, maintenant());
-  if (!corps.slug || corps.slug !== dossierDuJour(e)) return introuvable();
+  const etat = await lireEtat();
+  if (!manchePermise(cfg, e, etat, corps.slug)) return introuvable();
 
   const d = await lireDossier(corps.slug);
   if (!d || d.actif === false) return introuvable();
 
-  const etat = await lireEtat();
   const nb = (d.indices || []).length;
   const debut = etat.debuts?.[corps.slug] ? Date.parse(etat.debuts[corps.slug]) : null;
   const parLeTemps = Math.min(indicesDepuis(cfg, debut, e.t), nb);

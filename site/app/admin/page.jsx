@@ -806,6 +806,17 @@ function Regles({ d, recharger, flash }) {
         <label>Taille du fonds<input type="number" value={c.tailleFonds} onChange={(e) => maj({ tailleFonds: Number(e.target.value) })} /></label>
         <label>Anomalies pour la fin alternative<input type="number" value={c.seuilAnomalies} onChange={(e) => maj({ seuilAnomalies: Number(e.target.value) })} /></label>
       </div>
+      <label className="adm-case">
+        <input type="checkbox" checked={c.rattrapage !== false}
+          onChange={(e) => maj({ rattrapage: e.target.checked })} />
+        Rattrapage des jours manqués
+      </label>
+      <p className="adm-aide">
+        Un soir chargé ne coûte pas un dossier : s'il n'a pas joué hier, un encart
+        doré lui propose de le reprendre, aujourd'hui ou plus tard. Le chrono contre
+        l'Archiviste compte toujours, et les dossiers à venir restent fermés.
+        Décoche et un jour manqué est perdu pour de bon.
+      </p>
       <label className="adm-bloc">Paliers d'indices <em>— minutes depuis l'ouverture de la manche, une par ligne</em>
         <textarea rows={3} value={(c.paliers || []).join('\n')}
           onChange={(e) => maj({ paliers: e.target.value.split('\n').map((s) => Number(s.trim())).filter((n) => Number.isFinite(n)) })} />

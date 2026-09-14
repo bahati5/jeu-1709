@@ -63,11 +63,21 @@ export default function Jeu() {
      l'amorçage et se terminaient sans que personne ne les voie. */
   const [etape, setEtape] = useState('attente');
 
-  const charger = useCallback(async () => {
-    const r = await fetch('/api/etat', { cache: 'no-store' });
+  /* `vise` : le slug d'un dossier en retard qu'il a choisi de reprendre.
+     Vide = le dossier du jour, comme toujours. */
+  const [vise, setVise] = useState(null);
+
+  const charger = useCallback(async (slug) => {
+    const cible = slug === undefined ? vise : slug;
+    const url = cible ? `/api/etat?dossier=${encodeURIComponent(cible)}` : '/api/etat';
+    const r = await fetch(url, { cache: 'no-store' });
     if (!r.ok) { setD({ phase: 'ferme' }); return; }
-    setD(await r.json());
-  }, []);
+    const data = await r.json();
+    /* Le dossier repris vient d'être résolu : le serveur sert de nouveau
+       celui du jour, et le bandeau de reprise n'a plus lieu d'être. */
+    if (cible && data.manche?.slug !== cible) setVise(null);
+    setD(data);
+  }, [vise]);
 
   useEffect(() => { charger(); }, [charger]);
 
@@ -105,7 +115,7 @@ export default function Jeu() {
   /* Ouvrir la manche fait partir le chrono et l'horloge des indices. */
   useEffect(() => {
     if (d?.manche && !d.manche.resolu && d.manche.minutes === 0) {
-      api('/api/ouvrir', { slug: d.manche.slug }).then(charger);
+      api('/api/ouvrir', { slug: d.manche.slug }).then(() => charger());
     }
   }, [d?.manche?.slug]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -235,6 +245,9 @@ export default function Jeu() {
                 <Tete d={d} />
                 <Scelles d={d} />
 
+                {onglet === 'manche' && (
+                  <Retards d={d} vise={vise} choisir={(slug) => { setVise(slug); charger(slug); }} />
+                )}
                 {onglet === 'manche' && (
                   d.manche
                     ? <Manche m={d.manche} onRepondre={repondre} onPasse={passe}
@@ -394,6 +407,38 @@ function Scelles({ d }) {
         ))}
       </div>
       <div className="jauge"><i style={{ width: total ? `${(pris / total) * 100}%` : '0%' }} /></div>
+    </div>
+  );
+}
+
+/* Les jours laissés en plan. Un soir chargé ne doit pas coûter un dossier :
+   il le reprend quand il veut, et le chrono compte toujours. */
+function Retards({ d, vise, choisir }) {
+  const liste = d.retards || [];
+  if (!liste.length && !vise) return null;
+
+  if (vise) {
+    const r = liste.find((x) => x.slug === vise);
+    return (
+      <div className="retards retards-on">
+        <span>Vous reprenez le dossier du jour {r?.jour ?? '—'}</span>
+        <button type="button" onClick={() => choisir(null)}>Revenir à aujourd’hui</button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="retards">
+      <span className="retards-t">
+        {liste.length > 1
+          ? `${liste.length} dossiers sont restés ouverts`
+          : 'Un dossier est resté ouvert'}
+      </span>
+      {liste.map((r) => (
+        <button key={r.slug} type="button" onClick={() => choisir(r.slug)}>
+          Jour {r.jour} · {r.titre}
+        </button>
+      ))}
     </div>
   );
 }

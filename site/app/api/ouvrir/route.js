@@ -2,7 +2,7 @@
    instant — pas de l'aube — que se comptent les indices. Compter depuis
    l'aube les rendrait tous disponibles avant son réveil. */
 import { introuvable, json } from '@/lib/acces';
-import { etatTemps, maintenant, dossierDuJour } from '@/lib/temps';
+import { etatTemps, maintenant, manchePermise } from '@/lib/temps';
 import { lireConfig, lireEtat, muterEtat } from '@/lib/donnees';
 
 export const dynamic = 'force-dynamic';
@@ -14,9 +14,9 @@ export async function POST(req) {
 
   const cfg = await lireConfig();
   const e = etatTemps(cfg, maintenant());
-  if (corps.slug !== dossierDuJour(e)) return introuvable();
-
   const etat = await lireEtat();
+  if (!manchePermise(cfg, e, etat, corps.slug)) return introuvable();
+
   if (etat.debuts?.[corps.slug]) return json({ ok: true, debut: etat.debuts[corps.slug] });
 
   const debut = new Date(e.t).toISOString();

@@ -48,6 +48,7 @@ export const CONFIG_DEFAUT = {
 
   /* Les règles */
   codeFinal: '17091999',
+  rattrapage: true,          // il peut reprendre un jour manqué
   paliers: [60, 120, 180],
   tentativesMax: 5,
   blocageMinutes: 10,
@@ -95,6 +96,7 @@ export function normaliserConfig(c) {
   cfg.skin = cfg.skin === 'chambre' ? 'chambre' : 'grimoire';
   cfg.amorcage = cfg.amorcage !== false;
   cfg.papierNet = cfg.papierNet === true;
+  cfg.rattrapage = cfg.rattrapage !== false;
   cfg.intro = { ...CONFIG_DEFAUT.intro, ...(cfg.intro || {}) };
   cfg.attente = { ...CONFIG_DEFAUT.attente, ...(cfg.attente || {}) };
   cfg.anomalie = { ...CONFIG_DEFAUT.anomalie, ...(cfg.anomalie || {}) };

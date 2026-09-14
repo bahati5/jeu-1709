@@ -4,7 +4,7 @@
  * une fois la manche gagnée.
  */
 import { introuvable, json } from '@/lib/acces';
-import { etatTemps, maintenant, dossierDuJour, dossiersOuverts, minutesDepuis } from '@/lib/temps';
+import { etatTemps, maintenant, dossierDuJour, dossiersOuverts, manchePermise, minutesDepuis } from '@/lib/temps';
 import { lireConfig, lireEtat, lireDossier, muterEtat } from '@/lib/donnees';
 import { normaliser, verifier, verifierDossier, verifierPasse } from '@/lib/reponses';
 
@@ -45,7 +45,9 @@ export async function POST(req) {
      jour ce qui clochait dans le premier dossier, et c'est même le but.
      Tout le reste ne concerne que la manche d'aujourd'hui. */
   const ouverts = dossiersOuverts(e);
-  const permis = corps.quoi === 'anomalie' ? ouverts.includes(slug) : slug === jour;
+  const permis = corps.quoi === 'anomalie'
+    ? ouverts.includes(slug)
+    : manchePermise(cfg, e, etat, slug);
   if (!slug || !permis) return introuvable();
 
   const d = await lireDossier(slug);

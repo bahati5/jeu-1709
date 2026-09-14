@@ -109,6 +109,22 @@ export function dossierDuJour(e) {
   return e.phase === 'enquete' ? (e.jour?.dossier || null) : null;
 }
 
+/** Les dossiers d'hier et d'avant restés sans réponse. */
+export function dossiersEnRetard(e, etat) {
+  if (e.phase !== 'enquete') return [];
+  return e.j.jours
+    .filter((j) => j.dossier && j.index < e.jour.index && !etat?.resolus?.[j.dossier])
+    .map((j) => ({ slug: j.dossier, date: j.date, index: j.index }));
+}
+
+/** Peut-il répondre à ce dossier maintenant ? */
+export function manchePermise(cfg, e, etat, slug) {
+  if (!slug) return false;
+  if (slug === dossierDuJour(e)) return true;
+  if (cfg?.rattrapage === false) return false;
+  return dossiersEnRetard(e, etat).some((r) => r.slug === slug);
+}
+
 /** Les dossiers déjà ouverts (aujourd'hui compris) — pour les médias et le tableau. */
 export function dossiersOuverts(e) {
   if (e.phase !== 'enquete') return [];

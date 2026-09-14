@@ -5,13 +5,14 @@
  * non gagnées, les anomalies non trouvées.
  */
 import { estAdmin, json } from '@/lib/acces';
-import { etatTemps, maintenant, ongletsOuverts, verdictOuvert, indicesDepuis, minutesDepuis } from '@/lib/temps';
+import { etatTemps, maintenant, ongletsOuverts, verdictOuvert,
+         dossiersEnRetard, manchePermise, indicesDepuis, minutesDepuis } from '@/lib/temps';
 import { lireConfig, lireEtat, lireDossier, listerAnimations, amorcerAnimations } from '@/lib/donnees';
 import { versClient } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(req) {
   const cfg = await lireConfig();
   const etat = await lireEtat();
   const e = etatTemps(cfg, maintenant());
@@ -50,7 +51,16 @@ export async function GET() {
   }
 
   const total = e.j.jours.length;
-  const slug = e.jour.dossier;
+
+  /* `?dossier=` sert à reprendre un jour manqué, et rien d'autre ne s'ouvre
+     par là : manchePermise refuse tout ce qui n'est pas aujourd'hui ou un
+     retard non résolu. */
+  const retards = dossiersEnRetard(e, etat);
+  const demande = new URL(req.url).searchParams.get('dossier');
+  const enRetard = Boolean(demande) && demande !== e.jour.dossier
+    && manchePermise(cfg, e, etat, demande);
+
+  const slug = enRetard ? demande : e.jour.dossier;
   const resolu = Boolean(slug && etat.resolus?.[slug]);
 
   /* Le dossier du jour, réduit à sa projection publique. */
@@ -91,6 +101,9 @@ export async function GET() {
       const bloc = etat.tentatives?.[slug];
       if (bloc?.jusqu && bloc.jusqu > e.t) manche.bloqueJusqu = bloc.jusqu;
       manche.tentativesRestantes = Math.max(0, (cfg.tentativesMax || 5) - (bloc?.n || 0));
+
+      manche.enRetard = enRetard;
+      if (enRetard) manche.date = e.j.jours.find((j) => j.dossier === slug)?.date ?? null;
     }
   }
 
@@ -133,6 +146,13 @@ export async function GET() {
     acquis,
     anomalies,
     scelles: { total, pris: acquis.length },
+    /* Avec le titre : « un dossier vous attend » ne dit pas lequel,
+       et personne n'y va. */
+    retards: await Promise.all(retards.map(async (r) => {
+      const d = await lireDossier(r.slug);
+      return { slug: r.slug, date: r.date, jour: r.index + 1,
+               titre: d?.titre || '', genre: d?.genre || '' };
+    })),
     /* Le final. La lettre ne quitte le serveur qu'une fois le code juste :
        avant ça, l'enveloppe est scellée pour de vrai, pas seulement à
        l'écran. */
