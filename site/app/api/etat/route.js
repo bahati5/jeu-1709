@@ -55,7 +55,9 @@ export async function GET(req) {
   /* `?dossier=` sert à reprendre un jour manqué, et rien d'autre ne s'ouvre
      par là : manchePermise refuse tout ce qui n'est pas aujourd'hui ou un
      retard non résolu. */
-  const retards = dossiersEnRetard(e, etat);
+  /* Règle coupée : plus d'encart doré, donc plus de boutons qui ne mènent
+     nulle part. La garde, elle, refuse déjà le paramètre. */
+  const retards = cfg.rattrapage === false ? [] : dossiersEnRetard(e, etat);
   const demande = new URL(req.url).searchParams.get('dossier');
   const enRetard = Boolean(demande) && demande !== e.jour.dossier
     && manchePermise(cfg, e, etat, demande);

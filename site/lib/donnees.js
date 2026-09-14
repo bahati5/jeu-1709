@@ -187,7 +187,12 @@ const fusionnerEtat = (o) => ({
 
 export async function lireEtat() {
   if (supaActif()) {
-    const { data } = await supa().from('etat_jeu').select('data').eq('id', 'principal').maybeSingle();
+    const { data, error } = await supa().from('etat_jeu').select('data').eq('id', 'principal').maybeSingle();
+    /* Contrairement à la config, un état vide n'est pas seulement affiché :
+       muterEtat le réécrit par-dessus la progression. Une lecture en échec
+       qui passerait pour une partie neuve efface donc tout ce qu'il a joué.
+       Elle doit arrêter net — un 500 passager vaut mieux qu'un effacement. */
+    if (error) throw new Error(`lecture de etat_jeu impossible : ${error.message}`);
     return fusionnerEtat(data?.data);
   }
   const db = await lireFichier();
@@ -196,7 +201,9 @@ export async function lireEtat() {
 
 export async function ecrireEtat(etat) {
   if (supaActif()) {
-    await supa().from('etat_jeu').upsert({ id: 'principal', data: etat });
+    const { error } = await supa().from('etat_jeu').upsert({ id: 'principal', data: etat });
+    /* Une écriture perdue en silence, c'est une manche gagnée qui disparaît. */
+    if (error) throw new Error(`écriture de etat_jeu impossible : ${error.message}`);
     return etat;
   }
   const db = await lireFichier();
