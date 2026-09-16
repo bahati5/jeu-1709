@@ -103,7 +103,7 @@ export const TYPES = {
       { cle: 'lignes', libelle: 'Lignes', forme: 'nombre', defaut: 2 },
       { cle: 'consigne', libelle: 'La question posée', forme: 'texte' },
     ],
-    public: ['enonce', 'colonnes', 'lignes', 'consigne'],
+    public: ['enonce', 'media', 'colonnes', 'lignes', 'consigne'],
     secret: ['reponses'],
   },
 

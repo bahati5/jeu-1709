@@ -660,6 +660,10 @@ console.log(`\x1b[32m✓\x1b[0m ${CONFIG.titre} — ${CONFIG.debut} → ${CONFIG
 console.log(`\x1b[32m✓\x1b[0m indices demandables à ${CONFIG.paliers.join(', ')} min après ouverture de la manche`);
 
 console.log(`
+\x1b[33m⚠ Le dossier 6 repart ici dans sa forme d'origine (hex + ROT13).
+  Pour la pièce à reconstituer :  npm run puzzle6\x1b[0m`);
+
+console.log(`
 \x1b[34mPour jouer aujourd'hui\x1b[0m
   npm run aujourdhui        puis  npm run dev
   npm run aujourdhui -- 5   pour sauter au jour 5
